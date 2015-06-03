@@ -22,11 +22,8 @@ namespace SStats.Utilities.ServiceAgent
     {
         
         #region Properties
-        private IDictionary<ResultType, FeatureCollectionBase> _delineationResultList = new Dictionary<ResultType, FeatureCollectionBase>();
-        public IDictionary<ResultType, FeatureCollectionBase> DelineationResultList
-        {
-            get { return _delineationResultList; }
-        }
+        private IDictionary<string, FeatureWrapper> _featureResultList = new Dictionary<string, FeatureWrapper>();
+
         public string WorkspaceString { get; set; }
         private List<string> _message = new List<string>();
         public List<string> Messages
@@ -40,6 +37,12 @@ namespace SStats.Utilities.ServiceAgent
         public SSServiceAgent()
             : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
+            HasGeometry = false;
+        }
+        public SSServiceAgent(string workspaceID)
+            : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
+        {
+            WorkspaceString = workspaceID;
             HasGeometry = false;
         }
         #endregion
@@ -59,7 +62,7 @@ namespace SStats.Utilities.ServiceAgent
 
                 if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
 
-                HasGeometry = parseSSGWDelineationResult(result);
+                HasGeometry = parseSSGWDelineationResult(result, simplificationOption);
             }
             catch (Exception ex)
             {
@@ -164,7 +167,6 @@ namespace SStats.Utilities.ServiceAgent
             }
         
         }
-        
         public dynamic GetFlowStatistics(string state, string flowtypeList)
         {
             var result = Execute(getProcessRequest(getProcessName(processType.e_flowstats), getstatisticsBody(state, flowtypeList))) as JObject;
@@ -172,6 +174,26 @@ namespace SStats.Utilities.ServiceAgent
             return result;
         }
 
+        public List<FeatureWrapper> GetFeatures(string features)
+        {
+            List<string> requestFcodes;
+            List<FeatureWrapper> results;
+            string selectedFeatures = string.Empty;
+            try
+            {
+                requestFcodes = this.parse(loadFeatures(features).ToUpper());
+                results = this._featureResultList.Where(x => requestFcodes.Contains(x.Key.ToUpper())).Select(x => x.Value).ToList();
+
+                return results;
+            }
+            catch (Exception)
+            {
+                
+                throw;
+            }
+           
+
+        }
         #endregion
 
         #region Delineation Helper Methods
@@ -207,7 +229,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }//end getParameterList   
-        private Boolean parseSSGWDelineationResult(JObject SSdelineationResult)
+        private Boolean parseSSGWDelineationResult(JObject SSdelineationResult, Int32 simplificationOption)
         {
             FeatureBase feature = null;
             int wkid = -9;
@@ -216,8 +238,8 @@ namespace SStats.Utilities.ServiceAgent
             {
                 JToken results = SSdelineationResult;
                 this.WorkspaceString = results.Value<string>("Workspace");
-                if (isFeature(results["Watershed"], out feature, out wkid)) this.DelineationResultList.Add(ResultType.e_basin, new EsriFeatureRecordSet(feature, wkid));
-                if (isFeature(results["PourPoint"], out feature, out wkid)) this.DelineationResultList.Add(ResultType.e_pourpoint, new EsriFeatureRecordSet(feature, wkid));
+                if (isFeature(results["Watershed"], out feature, out wkid)) addToFeatureList((simplificationOption == 1) ? "delineatedbasin" : "delineatedbasin(simplified)", feature, wkid);
+                if (isFeature(results["PourPoint"], out feature, out wkid)) addToFeatureList("pourpoint", feature, wkid);
                 this.sm(results.Value<string>("Message").
                     Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).Where(msg => msg.Contains("AHMSG:"))
                                                                                 .Select(msg => msg.Substring((msg.IndexOf("Start Time:")) > 0 ? msg.IndexOf("Start Time:") : 0)).ToList());
@@ -230,28 +252,6 @@ namespace SStats.Utilities.ServiceAgent
             }//end try
         }//end parseDelineatinResult 
        
-        private Boolean isFeature(JToken jobj, out FeatureBase Feature, out int wkid)
-        {
-            JArray obj = null;
-            string gtype;
-
-            try
-            {
-                obj = (JArray)jobj.SelectToken("features");
-                gtype = (string)jobj.SelectToken("geometryType");
-                wkid = (int)jobj.SelectToken("spatialReference.wkid");
-                Feature = new EsriFeature(obj, gtype);
-                return true;
-
-            }
-            catch (Exception ex)
-            {
-
-                Feature = null;
-                wkid = 0;
-                return false;
-            }
-        }
         #endregion
 
         #region Parameter Helper Methods
@@ -312,7 +312,178 @@ namespace SStats.Utilities.ServiceAgent
         }//end getParameterList   
         #endregion
 
+        #region Feature Helper Methods
+        private string loadFeatures(string feature)
+        {
+            JObject result = null;
+            List<string> requestFCodes;
+            string msg;
+            try
+            {
+                requestFCodes = getRequestedFeatures(feature);
+                if(string.IsNullOrEmpty(this.WorkspaceString)) throw new Exception("workspace string must be set");
+                
+                result = Execute(getProcessRequest(getProcessName(processType.e_features), getBody(requestFCodes))) as JObject;
+                if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
+                return parseFeatures(result);
+
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
+
+        }
+        private string getBody(List<string> fList)
+        {
+            List<string> body = new List<string>();
+            try
+            {   
+                if(fList.Count > 0)
+                    body.Add("-includefeatures "+ string.Join(";", fList.Select(f => f).ToList()));
+                body.Add("-workspaceID " + this.WorkspaceString);
+                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+
+
+                return string.Join(" ", body);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        private string parseFeatures(JObject jobj)
+        {
+            FeatureBase feature = null;
+            int wkid = -9;
+            char[] delimiterChars = { '_' };
+            List<string> featurelist = new List<string>();
+            try
+            {
+                this.WorkspaceString = jobj.Value<string>("Workspace");
+                this.sm(jobj.Value<string>("Message").
+                    Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).Where(msg => msg.Contains("AHMSG:"))
+                                                                                .Select(msg => msg.Substring((msg.IndexOf("Start Time:")) > 0 ? msg.IndexOf("Start Time:") : 0)).ToList());
+
+                foreach (JToken item in (JArray)jobj.SelectToken("Features"))
+                {
+                    feature = null;
+                    var name = item.Value<string>("name");
+                    switch (name)
+                    {
+                        case "globalwatershedpoint":
+                            name = "pourpoint";
+                            break;
+                        case "globalwatershedraw":
+                            continue;
+                        case "globalwatershed":
+                            name = "delineatedbasin";
+                            break;
+                        case "simplifiedgw":
+                            name = "delineatedbasin(simplified)";
+                            break;
+                        default:
+                            break;
+                    }//end switch
+
+                    featurelist.Add(name);
+
+
+                    if (isFeature(item["feature"], out feature, out wkid)) {
+                        addToFeatureList(name, feature, wkid);
+                        HasGeometry = true;
+                    }
+                    else
+                        _featureResultList.Add(name, new FeatureWrapper() { name = name });
+                                        
+                }//next item
+            
+                return string.Join(";", featurelist);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }//end try
+        }
+        private List<string> getRequestedFeatures(string features){
+            List<string> requestFCodes = new List<string>();
+
+            try
+            {
+                foreach (string item in parse(features))
+                {
+                    switch (item.ToLower())
+                    {
+                        case "pourpoint":
+                            requestFCodes.Add("globalwatershedpoint");
+                            break;
+                        case "delineatedbasin":
+                            requestFCodes.Add("globalwatershed");
+                            break;
+                        case "delineatedbasin(simplified)":
+                            requestFCodes.Add("simplifiedgw");
+                            break;
+                        default:
+                            requestFCodes.Add(item);
+                            break;
+                    }//end switch
+                }//next item
+
+                return requestFCodes;
+            }
+            catch (Exception)
+            {
+                
+                throw;
+            }
+        
+        }
+        #endregion
+
         #region Other Helper Methods
+        private Boolean isFeature(JToken jobj, out FeatureBase Feature, out int wkid)
+        {
+            JArray obj = null;
+            string gtype;
+
+            try
+            {
+                obj = (JArray)jobj.SelectToken("features");
+                gtype = (string)jobj.SelectToken("geometryType");
+                wkid = (int)jobj.SelectToken("spatialReference.wkid");
+                Feature = new EsriFeature(obj, gtype);
+                return true;
+
+            }
+            catch (Exception ex)
+            {
+
+                Feature = null;
+                wkid = 0;
+                return false;
+            }
+        }
+        private void addToFeatureList(string name, FeatureBase feature, int wkid)
+        {
+            FeatureCollectionBase fColl = null;
+            FeatureWrapper fStruct = null;
+            try
+            {
+                if (this._featureResultList.ContainsKey(name)) return;
+
+                fColl = new EsriFeatureRecordSet(feature, wkid);
+                fStruct = new FeatureWrapper() { name = name, feature = fColl };                
+
+            }
+            catch (Exception ex)
+            {
+                sm(name + " Add Feature error " + ex.Message);
+            }
+            finally {
+                if (fColl !=null)
+                    this._featureResultList.Add(name,fStruct);
+            }
+        }        
         private String getProcessName(processType sType)
         {
             string uri = string.Empty;
@@ -329,6 +500,9 @@ namespace SStats.Utilities.ServiceAgent
                     break;
                 case processType.e_flowstats:
                     uri = ConfigurationManager.AppSettings["Flowstats"];
+                    break;
+                case processType.e_features:
+                    uri = ConfigurationManager.AppSettings["Features"];
                     break;
             }
 
@@ -364,20 +538,18 @@ namespace SStats.Utilities.ServiceAgent
             this._message.AddRange(msg);
         }
         #endregion
+
         #region Enumerations
         public enum processType
         {
             e_delineation,
             e_parameters,
             e_shape,
-            e_flowstats
+            e_flowstats,
+            e_features
         }
 
         #endregion
     }
-    public enum ResultType
-    {
-        e_basin,
-        e_pourpoint
-    }
+
 }

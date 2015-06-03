@@ -22,6 +22,7 @@
     <TargetFrameworkProfile />
     <SolutionDir Condition="$(SolutionDir) == '' Or $(SolutionDir) == '*Undefined*'">..\</SolutionDir>
     <RestorePackages>true</RestorePackages>
+    <UseGlobalApplicationHostFile />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -44,18 +45,13 @@
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=6.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <SpecificVersion>False</SpecificVersion>
-      <HintPath>..\packages\Newtonsoft.Json.6.0.8\lib\net45\Newtonsoft.Json.dll</HintPath>
+    <Reference Include="Newtonsoft.Json, Version=7.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.7.0.1-beta3\lib\net45\Newtonsoft.Json.dll</HintPath>
+      <Private>True</Private>
     </Reference>
-    <Reference Include="OpenRasta">
-      <HintPath>..\packages\openrasta-core.2.5.53\lib\net40\OpenRasta.dll</HintPath>
-    </Reference>
-    <Reference Include="OpenRasta.Hosting.AspNet">
-      <HintPath>..\..\..\WiM\WiMServices\WiMServices\bin\Debug\OpenRasta.Hosting.AspNet.dll</HintPath>
-    </Reference>
-    <Reference Include="RestSharp">
-      <HintPath>..\packages\RestSharp.105.0.1\lib\net4\RestSharp.dll</HintPath>
+    <Reference Include="RestSharp, Version=105.1.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\RestSharp.105.1.0\lib\net45\RestSharp.dll</HintPath>
+      <Private>True</Private>
     </Reference>
     <Reference Include="System.Data.DataSetExtensions" />
     <Reference Include="System.Web.DynamicData" />
@@ -76,6 +72,7 @@
   <ItemGroup>
     <Content Include="Assets\Scripts\BasinParameters.py" />
     <Content Include="Assets\Scripts\BasinParametersTest.py" />
+    <Content Include="Assets\Scripts\Features.py" />
     <Content Include="Assets\Scripts\Delineation.py" />
     <Content Include="Assets\Scripts\DelineationTest.py" />
     <Content Include="Assets\Scripts\FlowStatisticsGP.py" />
@@ -103,6 +100,7 @@
     <Compile Include="Handlers\DownloadHandler.cs" />
     <Compile Include="Handlers\CapabilitiesHandler.cs" />
     <Compile Include="Handlers\StatisticsHandler.cs" />
+    <Compile Include="Handlers\FeatureHandler.cs" />
     <Compile Include="Handlers\WatershedHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
     <Compile Include="Resources\StreamStatsResources.cs">
@@ -115,6 +113,14 @@
     <Compile Include="Utilities\ServiceAgent\SSXMLAgent.cs" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\..\..\openrasta-core\src\OpenRasta\OpenRasta.csproj">
+      <Project>{3d251617-2581-4d9c-a639-5cfb0bb09420}</Project>
+      <Name>OpenRasta</Name>
+    </ProjectReference>
+    <ProjectReference Include="..\..\..\openrasta-hosting-aspnet\src\OpenRasta.Hosting.AspNet\OpenRasta.Hosting.AspNet.csproj">
+      <Project>{288a707d-78b1-464f-87f2-63d6652c3bc8}</Project>
+      <Name>OpenRasta.Hosting.AspNet</Name>
+    </ProjectReference>
     <ProjectReference Include="..\..\..\WiMGitHub\WiMServices\WiMServices\WiMServices.csproj">
       <Project>{3cdb4ec5-0f03-4528-b644-f8bb922b4b9e}</Project>
       <Name>WiMServices</Name>
@@ -139,7 +145,7 @@
           <AutoAssignPort>True</AutoAssignPort>
           <DevelopmentServerPort>46426</DevelopmentServerPort>
           <DevelopmentServerVPath>/</DevelopmentServerVPath>
-          <IISUrl>http://localhost/streamStatsService</IISUrl>
+          <IISUrl>http://localhost/streamstatsservices</IISUrl>
           <NTLMAuthentication>False</NTLMAuthentication>
           <UseCustomServer>False</UseCustomServer>
           <CustomServerUrl>

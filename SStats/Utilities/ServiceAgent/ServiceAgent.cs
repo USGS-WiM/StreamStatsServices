@@ -368,6 +368,10 @@ namespace SStats.Utilities.ServiceAgent
             e_characteristicsList,
             e_state
         }
+        public enum ResultType { 
+            e_basin,
+            e_pourpoint
+        }
         #endregion
     }//end sssServiceAgent       
 }//end namespace
