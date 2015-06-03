@@ -58,7 +58,7 @@ namespace SStats.Handlers
         }//end Get
 
         [HttpOperation(HttpMethod.GET, ForUriName = "GetParametersFromWorkspaceID")]
-        public OperationResult GetParametersFromWorkspaceID(String state, String workspaceID, String parameterList)
+        public OperationResult GetParametersFromWorkspaceID(String regioncode, String workspaceID, String parameterList)
         {
             SSServiceAgent agent = null;
             Parameters wp = new Parameters();
@@ -66,7 +66,7 @@ namespace SStats.Handlers
             {
                 agent = new SSServiceAgent();
                 agent.WorkspaceString = workspaceID;
-                wp.ParameterList = agent.GetParameters(state, parameterList);
+                wp.ParameterList = agent.GetParameters(regioncode, parameterList);
                 wp.Messages = agent.Messages;                          
 
                 return new OperationResult.OK { ResponseResource = wp };

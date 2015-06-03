@@ -61,7 +61,6 @@ namespace SStats
                 addDownloadResource();
                 addFlowStatisticResource();
                 addFeatureResource();
-            http://support.esri.com/ja/knowledgebase/techarticles/detail/39029
 
                 //the capabilites section if for vs 3 and needs to be removed -jkn
                 ResourceSpace.Has.ResourcesOfType<List<Capabilities>>()
@@ -107,7 +106,7 @@ namespace SStats
             ResourceSpace.Has.ResourcesOfType<dynamic>()
              .AtUri("flowstatistics?rcode={regioncode}&workspaceID={workspaceID}&flowtypes={flowtypeList}").Named("GetFlowStatsFromWorkspaceID")
             .HandledBy<StatisticsHandler>()
-            .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9");
+            .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
         }
         private void addFeatureResource() {
             ResourceSpace.Has.ResourcesOfType<Features>()
