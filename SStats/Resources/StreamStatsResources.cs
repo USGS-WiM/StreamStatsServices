@@ -16,21 +16,16 @@ namespace SStats.Resources
     public class Watershed
     {
         public Watershed() {
-            this.FeatureList = new Dictionary<string, FeatureCollectionBase>();
+            this.FeatureList = new List<FeatureWrapper>();
         }
         [JsonProperty("workspaceID")]
         [XmlElement("workspaceID")]
         public string workspaceID { get; set; }
 
-        public Dictionary<string, FeatureCollectionBase> FeatureList { get; set; }
-
-        //[JsonProperty("delineatedbasin")]
-        //[XmlElement("delineatedbasin")]
-        //public FeatureCollectionBase DelineatedBasin { get; set; }
-        
-        //[JsonProperty("pourpoint")]
-        //[XmlElement("pourpoint")]
-        //public FeatureCollectionBase PourPoint { get; set; }
+        [JsonProperty("featurecollection")]
+        [XmlArray("featurecollection")]
+        [XmlArrayItem("feature")]
+        public List<FeatureWrapper> FeatureList { get; set; }
         
         [JsonProperty("parameters")]
         [XmlArray("parameters")]
@@ -41,7 +36,22 @@ namespace SStats.Resources
         [XmlArray("messages")]
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
-    }//end streamStats
+    }
+
+    [XmlInclude(typeof(EsriFeatureRecordSet))]
+    [XmlRoot("features")]
+    public class Features
+    {
+        [JsonProperty("featurecollection")]
+        [XmlArray("featurecollection")]
+        [XmlArrayItem("feature")]
+        public List<FeatureWrapper> FeatureList { get; set; }
+
+        [JsonProperty("messages")]
+        [XmlArray("messages")]
+        [XmlArrayItem("message")]
+        public List<String> Messages { get; set; }
+    }
 
     [XmlRoot("parameters")]
     public class Parameters
@@ -56,6 +66,7 @@ namespace SStats.Resources
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
     }
+
     [XmlRoot("flowstatistics")]
     public class FlowStatistics
     {
@@ -69,6 +80,7 @@ namespace SStats.Resources
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
     }
+
     [XmlRoot("capabilities")]
     public class Capabilities
     {

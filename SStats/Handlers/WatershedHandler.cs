@@ -32,6 +32,7 @@ using System.Runtime.InteropServices;
 
 using SStats.Resources;
 using SStats.Utilities.ServiceAgent;
+
 namespace SStats.Handlers
 {
     public class WatershedHandler
@@ -39,7 +40,7 @@ namespace SStats.Handlers
         [HttpOperation(HttpMethod.GET)]
         public OperationResult GetWatershed(String regioncode, Double X, Double Y, Int32 espg, [Optional] String doSimplify,
                                             [Optional] String parameterList, [Optional] String flowtypeList,
-                                            [Optional] String boolean)
+                                            [Optional] String featureList)
         {
             //watershed?state=IA&xlocation=-10347402.453276031&ylocation=5174977.1176704019&wkid=102100
             Watershed SSresults = null;
@@ -58,16 +59,16 @@ namespace SStats.Handlers
 
                 SSresults.workspaceID = agent.WorkspaceString;
                 SSresults.Messages = agent.Messages;
-
-                if (includeMethod(ref boolean) && agent.HasGeometry)
-                {
-                    SSresults.FeatureList.Add("delineatedbasin", agent.DelineationResultList[ResultType.e_basin]);
-                    SSresults.FeatureList.Add("pourpoint", agent.DelineationResultList[ResultType.e_pourpoint]);
-                }//end if
-
+                
                 if (includeMethod(ref parameterList))
                     SSresults.Parameters = agent.GetParameters(regioncode, parameterList);
-                
+
+                if (includeMethod(ref featureList) && agent.HasGeometry)
+                {
+                    if (string.IsNullOrEmpty(featureList)) featureList = (simplifyID == 1) ? "delineatedbasin;pourpoint" : "delineatedbasin(simplified);pourpoint";
+                    SSresults.FeatureList = agent.GetFeatures(featureList);
+                }//end if
+                                
                 return new OperationResult.OK { ResponseResource = SSresults };
             }
             catch (Exception ex)
@@ -84,30 +85,28 @@ namespace SStats.Handlers
 
         [HttpOperation(HttpMethod.GET, ForUriName = "GetWatershedFromWorkspaceID")]
         public OperationResult GetWatershedFromWorkspaceID(String regioncode, string workspaceID,
-                                                           [Optional] String parameterList, [Optional] String flowtypeList, 
-                                                           [Optional] String boolean)
+                                                           [Optional] String parameterList, [Optional] String flowtypeList,
+                                                           [Optional] String featureList)
         {
             Watershed SSresults = null;
             SSServiceAgent agent = null;
             try
-            {
-                agent = new SSServiceAgent();
-                SSresults = new Watershed();
-
-                if (string.IsNullOrEmpty(parameterList)) parameterList = string.Empty;
+            {        
                 if (string.IsNullOrEmpty(workspaceID)||string.IsNullOrEmpty(regioncode)) return new OperationResult.BadRequest { ResponseResource = "workspace and/or state cannot be null" };
-                agent.WorkspaceString = workspaceID;
+             
+                agent = new SSServiceAgent(workspaceID);
+                SSresults = new Watershed();
                 
                 SSresults.workspaceID = agent.WorkspaceString;
 
-                if (includeMethod(ref boolean))
-                {
-                   //SSresults.DelineatedBasin = agent.DelineationResultList[SSServiceAgent.ResultType.e_basin];
-                   // SSresults.PourPoint = agent.DelineationResultList[SSServiceAgent.ResultType.e_pourpoint];
-                }//end if
-
                 if (includeMethod(ref parameterList))
                     SSresults.Parameters = agent.GetParameters(regioncode, parameterList);
+
+                if (includeMethod(ref featureList))
+                {
+                    if (string.IsNullOrEmpty(featureList)) featureList = "delineatedbasin(simplified);pourpoint";
+                    SSresults.FeatureList = agent.GetFeatures(featureList);
+                }//end if
 
                 return new OperationResult.OK { ResponseResource = SSresults };
             }
@@ -149,6 +148,7 @@ namespace SStats.Handlers
             }
             catch (Exception)
             {
+                boolean = string.Empty;
                 return true;
             }
         }
