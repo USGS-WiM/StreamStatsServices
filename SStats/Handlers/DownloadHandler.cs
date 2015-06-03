@@ -50,7 +50,7 @@ namespace SStats.Handlers
     public class DownloadHandler
     {
         [HttpOperation(HttpMethod.GET, ForUriName = "DownloadZipFile")]
-        public OperationResult DownloadZipFile(string itemName,[Optional] string f)
+        public OperationResult DownloadZipFile(string workspaceID,[Optional] string f)
         {
 
             InMemoryFile fileItem;
@@ -60,26 +60,26 @@ namespace SStats.Handlers
             try
             {
                 //Return BadRequest if there is no ID 
-                if (string.IsNullOrEmpty(itemName)) return new OperationResult.BadRequest() { ResponseResource = "no filename specified" };
-                if (itemName.Contains("/")) itemName = itemName.Replace("/", "\\");
+                if (string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no filename specified" };
+                if (workspaceID.Contains("/")) workspaceID = workspaceID.Replace("/", "\\");
 
                 fType = getFileTypeByName(f);
                 if (fType != fileTypeEnum.e_geodatabase)
                 {
                     sAgent = new SSServiceAgent();
-                    itemName = sAgent.GetWorkspace(itemName, (Int32)fType);                    
+                    workspaceID = sAgent.GetWorkspace(workspaceID, (Int32)fType);                    
                 }
                 else
                 {
-                    itemName = Path.Combine(itemName, itemName + ".gdb");
+                    workspaceID = Path.Combine(workspaceID, workspaceID + ".gdb");
                 }
 
                 Storage aStorage = new Storage(ConfigurationManager.AppSettings["SSRepository"]);
                 
-                fileItem = new InMemoryFile(aStorage.GetZipFile(itemName));
+                fileItem = new InMemoryFile(aStorage.GetZipFile(workspaceID));
                 
-                itemName = itemName.Contains('\\') ? itemName.Substring(itemName.LastIndexOf('\\') + 1) + ".zip" : itemName + ".zip";
-                fileItem.FileName = itemName.Replace(".gdb","");
+                workspaceID = workspaceID.Contains('\\') ? workspaceID.Substring(workspaceID.LastIndexOf('\\') + 1) + ".zip" : workspaceID + ".zip";
+                fileItem.FileName = workspaceID.Replace(".gdb","");
           
                 return new OperationResult.OK { ResponseResource = fileItem };
 
@@ -87,7 +87,7 @@ namespace SStats.Handlers
             catch (Exception ex)
             {
 
-                return new OperationResult.InternalServerError { ResponseResource = "Item: " + itemName + ex.Message };
+                return new OperationResult.InternalServerError { ResponseResource = "Item: " + workspaceID + ex.Message };
             }
         }//end HttpMethod.GET
 

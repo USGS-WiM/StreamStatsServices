@@ -56,11 +56,12 @@ namespace SStats.Codecs.json
                 if (entity.GetType() == typeof(Watershed)) 
                 {
                     watershedEntity = (Watershed)entity;
-                    if (watershedEntity.FeatureList["pourpoint"] != null && watershedEntity.FeatureList["pourpoint"].GetType() == typeof(EsriFeatureRecordSet))
-                        watershedEntity.FeatureList["pourpoint"] = (FeatureCollection)(watershedEntity.FeatureList["pourpoint"] as EsriFeatureRecordSet);
 
-                    if (watershedEntity.FeatureList["delineatedbasin"] != null && watershedEntity.FeatureList["delineatedbasin"].GetType() == typeof(EsriFeatureRecordSet))
-                        watershedEntity.FeatureList["delineatedbasin"] = (FeatureCollection)(watershedEntity.FeatureList["delineatedbasin"] as EsriFeatureRecordSet);
+                    foreach (FeatureWrapper item in watershedEntity.FeatureList)
+                    {
+                        if (item.feature.GetType() == typeof(EsriFeatureRecordSet))
+                            item.feature = (FeatureCollection)(item.feature as EsriFeatureRecordSet);
+                    }//next item
 
                     entity = watershedEntity;
 

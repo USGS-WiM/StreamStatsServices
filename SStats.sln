@@ -1,7 +1,7 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
-# Visual Studio 2013
-VisualStudioVersion = 12.0.40302.0
+# Visual Studio 14
+VisualStudioVersion = 14.0.22823.1
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SStats", "SStats\SStats.csproj", "{1F9BA49A-3CB5-42B0-928C-72913B93E335}"
 EndProject
@@ -12,9 +12,13 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = ".nuget", ".nuget", "{21BD69
 		.nuget\NuGet.targets = .nuget\NuGet.targets
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiMServices", "..\..\WiMGitHub\WiMServices\WiMServices\WiMServices.csproj", "{3CDB4EC5-0F03-4528-B644-F8BB922B4B9E}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WiMServices", "..\WiMServices\WiMServices\WiMServices.csproj", "{3CDB4EC5-0F03-4528-B644-F8BB922B4B9E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "SSDB", "SSDB\SSDB.csproj", "{B0242F81-70E8-4BFC-B56B-575DC54957DF}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenRasta", "..\..\openrasta-core\src\OpenRasta\OpenRasta.csproj", "{3D251617-2581-4D9C-A639-5CFB0BB09420}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenRasta.Hosting.AspNet", "..\..\openrasta-hosting-aspnet\src\OpenRasta.Hosting.AspNet\OpenRasta.Hosting.AspNet.csproj", "{288A707D-78B1-464F-87F2-63D6652C3BC8}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -34,6 +38,14 @@ Global
 		{B0242F81-70E8-4BFC-B56B-575DC54957DF}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{B0242F81-70E8-4BFC-B56B-575DC54957DF}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{B0242F81-70E8-4BFC-B56B-575DC54957DF}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3D251617-2581-4D9C-A639-5CFB0BB09420}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3D251617-2581-4D9C-A639-5CFB0BB09420}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3D251617-2581-4D9C-A639-5CFB0BB09420}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3D251617-2581-4D9C-A639-5CFB0BB09420}.Release|Any CPU.Build.0 = Release|Any CPU
+		{288A707D-78B1-464F-87F2-63D6652C3BC8}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{288A707D-78B1-464F-87F2-63D6652C3BC8}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{288A707D-78B1-464F-87F2-63D6652C3BC8}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{288A707D-78B1-464F-87F2-63D6652C3BC8}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
