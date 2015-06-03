@@ -56,36 +56,14 @@ namespace SStats
                 ResourceSpace.Uses.PipelineContributor<CrossDomainPipelineContributor>();
 
                 //watershed
-                ResourceSpace.Has.ResourcesOfType<Watershed>()
-                .AtUri("/watershed?rcode={regioncode}&xlocation={X}&ylocation={Y}&crs={espg}&simplify={simplificationOption}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includegeometry={boolean}")
-                .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includegeometry={boolean}").Named("GetWatershedFromWorkspaceID")
-                .HandledBy<WatershedHandler>()
-                .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
-                .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
-                .And.TranscodedBy<SSGeoJsonDotNetCodec>(null).ForMediaType("application/geojson;q=0.9").ForExtension("geojson");
+                addWatershedResource();
+                addParameterResource();
+                addDownloadResource();
+                addFlowStatisticResource();
+                addFeatureResource();
+            http://support.esri.com/ja/knowledgebase/techarticles/detail/39029
 
-                ResourceSpace.Has.ResourcesOfType<Parameters>()
-                .AtUri("/parameters?rcode={regioncode}&group={group}")
-                .And.AtUri("/parameters?rcode={regioncode}&workspaceID={workspaceID}&includeparameters={parameterList}").Named("GetParametersFromWorkspaceID")
-                .HandledBy<ParameterHandler>()
-                .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
-                .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
-
-                ResourceSpace.Has.ResourcesOfType<IFile>()
-                .AtUri("/download?workspaceID={workspaceID}&format={f}").Named("DownloadZipFile")
-                .HandledBy<DownloadHandler>();
-
-                ResourceSpace.Has.ResourcesOfType<List<FlowStatistics>>()
-                .AtUri("/flowstatistics?rcode={regioncode}")
-                .HandledBy<StatisticsHandler>()
-                .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
-                .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
-
-                ResourceSpace.Has.ResourcesOfType<dynamic>()
-                 .AtUri("flowstatistics?rcode={regioncode}&workspaceID={workspaceID}&flowtypes={flowtypeList}").Named("GetFlowStatsFromWorkspaceID")               
-                .HandledBy<StatisticsHandler>()
-                .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9");
-
+                //the capabilites section if for vs 3 and needs to be removed -jkn
                 ResourceSpace.Has.ResourcesOfType<List<Capabilities>>()
                 .AtUri("/capabilities?rcode={regioncode}&type={type}")
                 .HandledBy<CapabilitiesHandler>()
@@ -95,5 +73,50 @@ namespace SStats
             }//end using
         }//end Configure
 
+        #region Helper methods
+        private void addWatershedResource(){
+        ResourceSpace.Has.ResourcesOfType<Watershed>()
+                .AtUri("/watershed?rcode={regioncode}&xlocation={X}&ylocation={Y}&crs={espg}&simplify={simplificationOption}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}")
+                .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}").Named("GetWatershedFromWorkspaceID")
+                .HandledBy<WatershedHandler>()
+                .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
+                .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
+                .And.TranscodedBy<SSGeoJsonDotNetCodec>(null).ForMediaType("application/geojson;q=0.9").ForExtension("geojson");
+        
+        }
+        private void addParameterResource() {
+            ResourceSpace.Has.ResourcesOfType<Parameters>()
+                    .AtUri("/parameters?rcode={regioncode}&group={group}")
+                    .And.AtUri("/parameters?rcode={regioncode}&workspaceID={workspaceID}&includeparameters={parameterList}").Named("GetParametersFromWorkspaceID")
+                    .HandledBy<ParameterHandler>()
+                    .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
+                    .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
+        }
+        private void addDownloadResource() {
+            ResourceSpace.Has.ResourcesOfType<IFile>()
+                    .AtUri("/download?workspaceID={workspaceID}&format={f}").Named("DownloadZipFile")
+                    .HandledBy<DownloadHandler>();
+        }
+        private void addFlowStatisticResource() {
+            ResourceSpace.Has.ResourcesOfType<List<FlowStatistics>>()
+                    .AtUri("/flowstatistics?rcode={regioncode}")
+                    .HandledBy<StatisticsHandler>()
+                    .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
+                    .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
+
+            ResourceSpace.Has.ResourcesOfType<dynamic>()
+             .AtUri("flowstatistics?rcode={regioncode}&workspaceID={workspaceID}&flowtypes={flowtypeList}").Named("GetFlowStatsFromWorkspaceID")
+            .HandledBy<StatisticsHandler>()
+            .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9");
+        }
+        private void addFeatureResource() {
+            ResourceSpace.Has.ResourcesOfType<Features>()
+             .AtUri("/features?workspaceID={workspaceID}&includefeatures={featureList}")
+             .HandledBy<FeatureHandler>()
+             .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
+             .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
+             .And.TranscodedBy<SSGeoJsonDotNetCodec>(null).ForMediaType("application/geojson;q=0.9").ForExtension("geojson");        
+        }
+        #endregion
     }//end Configuration
 }//end namespace
