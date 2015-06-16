@@ -177,6 +177,39 @@ namespace SSDB
                 this.CloseConnection();
             }
         }
+        public List<string> GetGroupCodes(string state)
+        {
+            string SQL;
+            try
+            {
+                List<string> para = new List<string>();
+                if (string.IsNullOrEmpty(state)) return para;
+
+                this.OpenConnection();
+                SQL = String.Format("SELECT * FROM report_fields_vw WHERE LOWER(st_abbr) = LOWER('{0}');", state);
+                NpgsqlCommand command = new NpgsqlCommand(SQL, this.connection);
+
+                using (NpgsqlDataReader reader = command.ExecuteReader())
+                {
+                    while (reader.Read())
+                    {
+                        string code = reader["p_group"].ToString();
+                        para.Add(code);
+                    }
+                }
+                this.sm("group count: " + para.Count);
+                return para;
+            }
+            catch (Exception ex)
+            {
+                this.sm(ex.Message);
+                throw ex;
+            }
+            finally
+            {
+                this.CloseConnection();
+            }
+        }
         #endregion
         #region "Helper Methods"
         private void OpenConnection()
