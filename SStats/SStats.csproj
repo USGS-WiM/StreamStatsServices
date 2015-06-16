@@ -96,6 +96,7 @@
   <ItemGroup>
     <Compile Include="Codecs\SSGeoJsonDotNetCodec.cs" />
     <Compile Include="Configuration.cs" />
+    <Compile Include="Handlers\ParameterGroupHandler.cs" />
     <Compile Include="Handlers\ParameterHandler.cs" />
     <Compile Include="Handlers\DownloadHandler.cs" />
     <Compile Include="Handlers\CapabilitiesHandler.cs" />

@@ -67,6 +67,20 @@ namespace SStats.Resources
         public List<String> Messages { get; set; }
     }
 
+    [XmlRoot("parametergroups")]
+    public class ParameterGroups
+    {
+        [JsonProperty("groups")]
+        [XmlArray("groups")]
+        [XmlArrayItem("group")]
+        public List<String> GroupList { get; set; }
+
+        [JsonProperty("messages")]
+        [XmlArray("messages")]
+        [XmlArrayItem("message")]
+        public List<String> Messages { get; set; }
+    }
+
     [XmlRoot("flowstatistics")]
     public class FlowStatistics
     {
