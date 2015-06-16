@@ -61,6 +61,7 @@ namespace SStats
                 addDownloadResource();
                 addFlowStatisticResource();
                 addFeatureResource();
+                addParameterGroupResource();
 
                 //the capabilites section if for vs 3 and needs to be removed -jkn
                 ResourceSpace.Has.ResourcesOfType<List<Capabilities>>()
@@ -115,6 +116,14 @@ namespace SStats
              .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
              .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
              .And.TranscodedBy<SSGeoJsonDotNetCodec>(null).ForMediaType("application/geojson;q=0.9").ForExtension("geojson");        
+        }
+        private void addParameterGroupResource()
+        {
+            ResourceSpace.Has.ResourcesOfType<ParameterGroups>()
+                    .AtUri("/parametergroups?rcode={regioncode}")
+                    .HandledBy<ParameterGroupHandler>()
+                    .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
+                    .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
         }
         #endregion
     }//end Configuration
