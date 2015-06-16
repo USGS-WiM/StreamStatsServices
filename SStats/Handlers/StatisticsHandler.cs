@@ -70,7 +70,7 @@ namespace SStats.Handlers
             }//end try
         }//end Get
         [HttpOperation(HttpMethod.GET, ForUriName = "GetParametersFromWorkspaceID")]
-        public OperationResult GetFlowStatsFromWorkspaceID(String state, string workspaceID, [Optional] String flowtypeList)
+        public OperationResult GetFlowStatsFromWorkspaceID(String regioncode, string workspaceID, [Optional] String flowtypeList)
         {
             Object flows;
             SSServiceAgent agent = null;
@@ -78,13 +78,13 @@ namespace SStats.Handlers
             try
             {
                 //Return BadRequest if there is no ID 
-                if (string.IsNullOrEmpty(state)|| string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no state or workspace specified" };
+                if (string.IsNullOrEmpty(regioncode)|| string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no state or workspace specified" };
                 if (string.IsNullOrEmpty(flowtypeList)) flowtypeList ="";
 
                 agent = new SSServiceAgent();
                 agent.WorkspaceString = workspaceID;
 
-                flows = agent.GetFlowStatistics(state, flowtypeList);                   
+                flows = agent.GetFlowStatistics(regioncode, flowtypeList);                   
           
                 return new OperationResult.OK { ResponseResource = flows };
 

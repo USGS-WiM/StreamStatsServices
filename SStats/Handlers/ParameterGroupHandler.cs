@@ -34,46 +34,21 @@ using SStats.Resources;
 using SStats.Utilities.ServiceAgent;
 namespace SStats.Handlers
 {
-    public class ParameterHandler
+    public class ParameterGroupHandler
     {
         [HttpOperationAttribute(HttpMethod.GET)]
-        public OperationResult Get(String regioncode, [Optional] String group)
+        public OperationResult Get(String regioncode)
         {
             SSServiceAgent agent = null;
-            try
-            {
-                agent = new SSServiceAgent();        
-                
-                return new OperationResult.OK { ResponseResource = new Parameters(){ Messages = agent.Messages, ParameterList= agent.GetRegionAvailableParameters(regioncode, group)} };
-            }
-            catch (Exception ex)
-            {
-                return new OperationResult.InternalServerError { ResponseResource = "Parameter Service Error: " + ex.Message.ToString() };
-            }
-            finally
-            {
-                agent = null;
-
-            }//end try
-        }//end Get
-
-        [HttpOperation(HttpMethod.GET, ForUriName = "GetParametersFromWorkspaceID")]
-        public OperationResult GetParametersFromWorkspaceID(String regioncode, String workspaceID, String parameterList)
-        {
-            SSServiceAgent agent = null;
-            Parameters wp = new Parameters();
             try
             {
                 agent = new SSServiceAgent();
-                agent.WorkspaceString = workspaceID;
-                wp.ParameterList = agent.GetParameters(regioncode, parameterList);
-                wp.Messages = agent.Messages;                          
 
-                return new OperationResult.OK { ResponseResource = wp };
+                return new OperationResult.OK { ResponseResource = new ParameterGroups() { Messages = agent.Messages, GroupList = agent.GetRegionAvailableGroups(regioncode) } };
             }
             catch (Exception ex)
             {
-                return new OperationResult.InternalServerError { ResponseResource = "Parameter Service Error: " + ex.Message.ToString() };
+                return new OperationResult.InternalServerError { ResponseResource = "Region Group Service Error: " + ex.Message.ToString() };
             }
             finally
             {

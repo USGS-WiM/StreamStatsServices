@@ -81,7 +81,7 @@ namespace SStats.Utilities.ServiceAgent
                 if (!requestPCodes.Contains("DRNAREA")) requestPCodes.Add("DRNAREA");
 
                 ///get list
-                List<Parameter> parameters = GetStateAvailableParameters(state);
+                List<Parameter> parameters = GetRegionAvailableParameters(state);
                 List<Parameter> selectedList = parameters.Where(p => requestPCodes.Contains(p.code)).ToList();
 
                 if (selectedList != null && selectedList.Count > 1) parameters = selectedList;
@@ -95,7 +95,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }
-        public List<Parameter> GetStateAvailableParameters(string state, string group = "")
+        public List<Parameter> GetRegionAvailableParameters(string state, string group = "")
         {
             postgresqldbOps db = null;
             SSXMLAgent xml = null;
@@ -130,6 +130,26 @@ namespace SStats.Utilities.ServiceAgent
                 }//next param
 
                 return regionParameterList;
+            }
+            catch (Exception ex)
+            {
+                throw ex;
+            }
+            finally
+            {
+                if (db != null) db.Dispose();
+            }
+        }//end Get
+        public List<String> GetRegionAvailableGroups(string rcode)
+        {
+            postgresqldbOps db = null;
+            List<string> groupCodes;
+            try
+            {
+                db = new postgresqldbOps(ConfigurationManager.AppSettings["SSDBConnectionString"]);
+                groupCodes = db.GetGroupCodes(rcode);
+                this.sm(db.Messages);
+                return groupCodes;
             }
             catch (Exception ex)
             {
@@ -283,8 +303,11 @@ namespace SStats.Utilities.ServiceAgent
                 .Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).Where(msg => msg.Contains("AHMSG:"))
                                                                              .Select(msg => msg.Substring((msg.IndexOf("Start Time:")) > 0 ? msg.IndexOf("Start Time:") : 0)).ToList());
 
-            objArray.Where(p => (p["code"] != null || p["value"] != null) && !String.IsNullOrEmpty(p.SelectToken("value").ToString()))
-                .Select(p => paramList.FirstOrDefault(sp => string.Equals(sp.code, p.SelectToken("code").ToString(), StringComparison.OrdinalIgnoreCase)).value = (Double)p.SelectToken("value"));
+            foreach (var p in objArray)
+            {
+                if ((p["code"] != null || p["value"] != null) && !String.IsNullOrEmpty(p.SelectToken("value").ToString()))
+                    paramList.FirstOrDefault(sp => string.Equals(sp.code, p.SelectToken("code").ToString(), StringComparison.OrdinalIgnoreCase)).value = (Double)p.SelectToken("value");
+            }//next p
 
             return paramList;
         }
