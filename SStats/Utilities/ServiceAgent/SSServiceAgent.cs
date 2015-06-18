@@ -22,7 +22,7 @@ namespace SStats.Utilities.ServiceAgent
     {
         
         #region Properties
-        private IDictionary<string, FeatureWrapper> _featureResultList = new Dictionary<string, FeatureWrapper>();
+        private IDictionary<string, FeatureWrapper> _featureResultList = new Dictionary<string, FeatureWrapper>(StringComparer.InvariantCultureIgnoreCase);
 
         public string WorkspaceString { get; set; }
         private List<string> _message = new List<string>();
@@ -77,14 +77,12 @@ namespace SStats.Utilities.ServiceAgent
             try
             {
                 requestPCodes = this.parse(pList);
-                //ensure request always has drnBasin
-                if (!requestPCodes.Contains("DRNAREA")) requestPCodes.Add("DRNAREA");
 
                 ///get list
                 List<Parameter> parameters = GetRegionAvailableParameters(state);
                 List<Parameter> selectedList = parameters.Where(p => requestPCodes.Contains(p.code)).ToList();
 
-                if (selectedList != null && selectedList.Count > 1) parameters = selectedList;
+                if (selectedList != null && selectedList.Count > 0) parameters = selectedList;
                 result = Execute(getProcessRequest(getProcessName(processType.e_parameters), getBody(state, parameters))) as JObject;
 
                 //deserialize result
@@ -196,13 +194,19 @@ namespace SStats.Utilities.ServiceAgent
 
         public List<FeatureWrapper> GetFeatures(string features)
         {
-            List<string> requestFcodes;
+            List<string> requestFcodes = new List<string>();
             List<FeatureWrapper> results;
-            string selectedFeatures = string.Empty;
             try
             {
-                requestFcodes = this.parse(loadFeatures(features).ToUpper());
-                results = this._featureResultList.Where(x => requestFcodes.Contains(x.Key.ToUpper())).Select(x => x.Value).ToList();
+                //check if features already exist in collection
+                
+                foreach (var item in parse(features))
+	                 if (!this._featureResultList.ContainsKey(item)) requestFcodes.Add(item);
+
+                if(requestFcodes.Count > 0)
+                    loadFeatures(string.Join(";",requestFcodes));
+
+                results = this._featureResultList.Where(x => parse(features).Contains(x.Key.ToUpper())).Select(x => x.Value).ToList();
 
                 return results;
             }
@@ -251,15 +255,17 @@ namespace SStats.Utilities.ServiceAgent
         }//end getParameterList   
         private Boolean parseSSGWDelineationResult(JObject SSdelineationResult, Int32 simplificationOption)
         {
-            FeatureBase feature = null;
+            List<FeatureBase> feature = null;
             int wkid = -9;
+            string geomType = string.Empty;
+            dynamic fields = null;
             char[] delimiterChars = { '_'};
             try
             {
                 JToken results = SSdelineationResult;
                 this.WorkspaceString = results.Value<string>("Workspace");
-                if (isFeature(results["Watershed"], out feature, out wkid)) addToFeatureList((simplificationOption == 1) ? "delineatedbasin" : "delineatedbasin(simplified)", feature, wkid);
-                if (isFeature(results["PourPoint"], out feature, out wkid)) addToFeatureList("pourpoint", feature, wkid);
+                if (isFeature(results["Watershed"], out feature, out wkid, out geomType, out fields)) addToFeatureList((simplificationOption == 1) ? "delineatedbasin" : "delineatedbasin(simplified)", feature, wkid, geomType, fields);
+                if (isFeature(results["PourPoint"], out feature, out wkid, out geomType, out fields)) addToFeatureList("pourpoint", feature, wkid, geomType, fields);
                 this.sm(results.Value<string>("Message").
                     Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).Where(msg => msg.Contains("AHMSG:"))
                                                                                 .Select(msg => msg.Substring((msg.IndexOf("Start Time:")) > 0 ? msg.IndexOf("Start Time:") : 0)).ToList());
@@ -377,8 +383,10 @@ namespace SStats.Utilities.ServiceAgent
         }
         private string parseFeatures(JObject jobj)
         {
-            FeatureBase feature = null;
+            List<FeatureBase> features = null;
             int wkid = -9;
+            string gtype = string.Empty;
+            dynamic fields = null;
             char[] delimiterChars = { '_' };
             List<string> featurelist = new List<string>();
             try
@@ -390,7 +398,7 @@ namespace SStats.Utilities.ServiceAgent
 
                 foreach (JToken item in (JArray)jobj.SelectToken("Features"))
                 {
-                    feature = null;
+                    features = null;
                     var name = item.Value<string>("name");
                     switch (name)
                     {
@@ -412,8 +420,8 @@ namespace SStats.Utilities.ServiceAgent
                     featurelist.Add(name);
 
 
-                    if (isFeature(item["feature"], out feature, out wkid)) {
-                        addToFeatureList(name, feature, wkid);
+                    if (isFeature(item["feature"], out features, out wkid, out gtype, out fields)) {
+                        addToFeatureList(name, features, wkid, gtype, fields);
                         HasGeometry = true;
                     }
                     else
@@ -464,17 +472,20 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Other Helper Methods
-        private Boolean isFeature(JToken jobj, out FeatureBase Feature, out int wkid)
+        private Boolean isFeature(JToken jobj, out List<FeatureBase> Feature, out int wkid, out string gtype, out dynamic fields)
         {
             JArray obj = null;
-            string gtype;
+            Feature = new List<FeatureBase>();
 
             try
             {
+                fields = jobj["fields"] != null? jobj.SelectToken("fields"): null;
                 obj = (JArray)jobj.SelectToken("features");
                 gtype = (string)jobj.SelectToken("geometryType");
                 wkid = (int)jobj.SelectToken("spatialReference.wkid");
-                Feature = new EsriFeature(obj, gtype);
+                foreach (JToken item in obj)
+                    Feature.Add(new EsriFeature(item, gtype));
+
                 return true;
 
             }
@@ -483,10 +494,12 @@ namespace SStats.Utilities.ServiceAgent
 
                 Feature = null;
                 wkid = 0;
+                gtype = string.Empty;
+                fields = null;
                 return false;
             }
         }
-        private void addToFeatureList(string name, FeatureBase feature, int wkid)
+        private void addToFeatureList(string name, List<FeatureBase> feature, int wkid, string geomType, dynamic fields)
         {
             FeatureCollectionBase fColl = null;
             FeatureWrapper fStruct = null;
@@ -494,7 +507,8 @@ namespace SStats.Utilities.ServiceAgent
             {
                 if (this._featureResultList.ContainsKey(name)) return;
 
-                fColl = new EsriFeatureRecordSet(feature, wkid);
+                fColl = new EsriFeatureRecordSet(feature, wkid, geomType, fields);
+               
                 fStruct = new FeatureWrapper() { name = name, feature = fColl };                
 
             }
