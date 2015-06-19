@@ -131,7 +131,8 @@ class FeaturesWrapper(object):
             args = parser.parse_args()
 
             
-            Results = {"Message": "INFO:Initialized_", "Features": [{"name": "SLP1085POINT", "feature": {"fields": [{"alias": "OID", "type": "esriFieldTypeOID", "name": "OID"}, {"alias": "HydroID", "type": "esriFieldTypeInteger", "name": "HydroID"}, {"alias": "DrainID", "type": "esriFieldTypeInteger", "name": "DrainID"}, {"alias": "Name", "length": 25, "type": "esriFieldTypeString", "name": "Name"}, {"alias": "Elev", "type": "esriFieldTypeDouble", "name": "Elev"}], "displayFieldName": "", "geometryType": "esriGeometryPoint", "features": [{"geometry": {"y": 5376576.374200001, "x": -7974708.6765}, "attributes": {"DrainID": 2, "OID": 9, "Elev": 524.047018576115, "Name": "10PNT", "HydroID": 16}}, {"geometry": {"y": 5376921.575999998, "x": -7972891.941299999}, "attributes": {"DrainID": 2, "OID": 10, "Elev": 718.2390158249958, "Name": "85PNT", "HydroID": 17}}], "spatialReference": {"wkid": 102100, "latestWkid": 3857}}}], "Workspace": "NH20150617083811813000"}
+            Results = {"Message": "INFO:Initialized_", "Features": [{"name": "globalwatershedpoint"}, {"name": "globalwatershedraw"}, {"name": "globalwatershed"}], "Workspace": "IA20150619101449524000"}
+
 
         except:
              tb = traceback.format_exc()
