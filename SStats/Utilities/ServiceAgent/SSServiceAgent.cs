@@ -199,16 +199,15 @@ namespace SStats.Utilities.ServiceAgent
             try
             {
                 //check if features already exist in collection
-                
                 foreach (var item in parse(features))
-	                 if (!this._featureResultList.ContainsKey(item)) requestFcodes.Add(item);
+                    if (!this._featureResultList.ContainsKey(item)) requestFcodes.Add(item);
+                loadFeatures(string.Join(";", requestFcodes));
 
-                if(requestFcodes.Count > 0)
-                    loadFeatures(string.Join(";",requestFcodes));
-
-                results = this._featureResultList.Where(x => parse(features).Contains(x.Key.ToUpper())).Select(x => x.Value).ToList();
+                if (string.IsNullOrEmpty(features)) results = this._featureResultList.Select(x => x.Value).ToList();
+                else results = this._featureResultList.Where(x => parse(features).Contains(x.Key.ToUpper())).Select(x => x.Value).ToList();
 
                 return results;
+
             }
             catch (Exception)
             {
@@ -258,7 +257,7 @@ namespace SStats.Utilities.ServiceAgent
             List<FeatureBase> feature = null;
             int wkid = -9;
             string geomType = string.Empty;
-            dynamic fields = null;
+            List<Field> fields = null;
             char[] delimiterChars = { '_'};
             try
             {
@@ -386,7 +385,7 @@ namespace SStats.Utilities.ServiceAgent
             List<FeatureBase> features = null;
             int wkid = -9;
             string gtype = string.Empty;
-            dynamic fields = null;
+            List<Field> fields = null;
             char[] delimiterChars = { '_' };
             List<string> featurelist = new List<string>();
             try
@@ -472,14 +471,14 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Other Helper Methods
-        private Boolean isFeature(JToken jobj, out List<FeatureBase> Feature, out int wkid, out string gtype, out dynamic fields)
+        private Boolean isFeature(JToken jobj, out List<FeatureBase> Feature, out int wkid, out string gtype, out List<Field> fields)
         {
             JArray obj = null;
             Feature = new List<FeatureBase>();
 
             try
-            {
-                fields = jobj["fields"] != null? jobj.SelectToken("fields"): null;
+            {                                
+                fields = jobj["fields"] != null ? JsonConvert.DeserializeObject<List<Field>>(jobj.SelectToken("fields").ToString()) : null; 
                 obj = (JArray)jobj.SelectToken("features");
                 gtype = (string)jobj.SelectToken("geometryType");
                 wkid = (int)jobj.SelectToken("spatialReference.wkid");
@@ -499,7 +498,7 @@ namespace SStats.Utilities.ServiceAgent
                 return false;
             }
         }
-        private void addToFeatureList(string name, List<FeatureBase> feature, int wkid, string geomType, dynamic fields)
+        private void addToFeatureList(string name, List<FeatureBase> feature, int wkid, string geomType, List<Field> fields)
         {
             FeatureCollectionBase fColl = null;
             FeatureWrapper fStruct = null;
