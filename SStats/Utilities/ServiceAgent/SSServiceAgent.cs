@@ -423,7 +423,7 @@ namespace SStats.Utilities.ServiceAgent
                         addToFeatureList(name, features, wkid, gtype, fields);
                         HasGeometry = true;
                     }
-                    else
+                    else if (!this._featureResultList.ContainsKey(name))
                         _featureResultList.Add(name, new FeatureWrapper() { name = name });
                                         
                 }//next item
