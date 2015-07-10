@@ -38,7 +38,7 @@ namespace SStats.Handlers
     public class WatershedHandler
     {
         [HttpOperation(HttpMethod.GET)]
-        public OperationResult GetWatershed(String regioncode, Double X, Double Y, Int32 espg, [Optional] String doSimplify,
+        public OperationResult GetWatershed(String regioncode, Double X, Double Y, Int32 espg, [Optional] String simplificationOption,
                                             [Optional] String parameterList, [Optional] String flowtypeList,
                                             [Optional] String featureList)
         {
@@ -51,11 +51,10 @@ namespace SStats.Handlers
                 agent = new SSServiceAgent();
                 SSresults = new Watershed();
                 //1 = full, 2 = simplified
-                Int32 simplifyID = includeMethod(ref doSimplify) ? 2 : 1;
+                Int32 simplifyID = includeMethod(ref simplificationOption) ? 2 : 1;
 
                //delineation
-
-                agent.GetDelineation(X, Y, espg, simplifyID, regioncode);
+                agent.Delineate(X, Y, espg, regioncode);
 
                 SSresults.workspaceID = agent.WorkspaceString;
                 SSresults.Messages = agent.Messages;
@@ -63,10 +62,10 @@ namespace SStats.Handlers
                 if (includeMethod(ref parameterList))
                     SSresults.Parameters = agent.GetParameters(regioncode, parameterList);
 
-                if (includeMethod(ref featureList) && agent.HasGeometry)
+                if (includeMethod(ref featureList) && !String.IsNullOrEmpty(agent.WorkspaceString))
                 {
-                    if (string.IsNullOrEmpty(featureList)) featureList = (simplifyID == 1) ? "delineatedbasin;pourpoint" : "delineatedbasin(simplified);pourpoint";
-                    SSresults.FeatureList = agent.GetFeatures(featureList);
+                    if (string.IsNullOrEmpty(featureList)) featureList = "globalwatershedpoint;globalwatershed";
+                    SSresults.FeatureList = agent.GetFeatures(featureList,simplifyID);
                 }//end if
                                 
                 return new OperationResult.OK { ResponseResource = SSresults };
@@ -84,7 +83,7 @@ namespace SStats.Handlers
         }//end Get
 
         [HttpOperation(HttpMethod.GET, ForUriName = "GetWatershedFromWorkspaceID")]
-        public OperationResult GetWatershedFromWorkspaceID(String regioncode, string workspaceID,
+        public OperationResult GetWatershedFromWorkspaceID(String regioncode, string workspaceID, [Optional] String simplificationOption,
                                                            [Optional] String parameterList, [Optional] String flowtypeList,
                                                            [Optional] String featureList)
         {
@@ -93,7 +92,9 @@ namespace SStats.Handlers
             try
             {        
                 if (string.IsNullOrEmpty(workspaceID)||string.IsNullOrEmpty(regioncode)) return new OperationResult.BadRequest { ResponseResource = "workspace and/or state cannot be null" };
-             
+                //1 = full, 2 = simplified
+                Int32 simplifyID = includeMethod(ref simplificationOption) ? 2 : 1;
+
                 agent = new SSServiceAgent(workspaceID);
                 SSresults = new Watershed();
                 
@@ -104,8 +105,8 @@ namespace SStats.Handlers
 
                 if (includeMethod(ref featureList))
                 {
-                    if (string.IsNullOrEmpty(featureList)) featureList = "delineatedbasin(simplified);pourpoint";
-                    SSresults.FeatureList = agent.GetFeatures(featureList);
+                    if (string.IsNullOrEmpty(featureList)) featureList = "globalwatershedpoint;globalwatershed";
+                    SSresults.FeatureList = agent.GetFeatures(featureList, simplifyID);
                 }//end if
 
                 return new OperationResult.OK { ResponseResource = SSresults };
