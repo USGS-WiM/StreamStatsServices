@@ -31,7 +31,7 @@ import logging
 
 import xmltodict
 
-import ArcHydroTools
+#import ArcHydroTools
 import xml.dom.minidom
 import decimal
 #endregion
@@ -57,8 +57,6 @@ class FlowStatistics(object):
         #Test if workspace exists before run   
         if(self.__workspaceExists__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):
            self.isInitialized = True
-        else:
-            self.__sm__("workspace doesn't exist",'ERROR')
     #endregion  
          
     #Methods
@@ -74,18 +72,18 @@ class FlowStatistics(object):
 
             outputFile = os.path.join(self.__MainDirectory__, "Temp","flowStatisticsFile{0}")
             
-            arcpy.CheckOutExtension("Spatial")
-            self.__sm__("Stated calc flow statistics")
+            #arcpy.CheckOutExtension("Spatial")
+            #self.__sm__("Stated calc flow statistics")
 
-            ArcHydroTools.ComputeFlows(os.path.join(workspace,"GlobalWatershed"), 
-                                       os.path.join(workspace,"GlobalWatershedPoint"), 
-                                       outputFile.format(".xml"), outputFile.format(".htm"), 
-                                       self.__getXMLPath__(),
-                                       flowsStatisticsList, "", 
-                                       self.WorkspaceID )
+            #ArcHydroTools.ComputeFlows(os.path.join(workspace,"GlobalWatershedRaw"), 
+            #                           os.path.join(workspace,"GlobalWatershedPoint"), 
+            #                           outputFile.format(".xml"), outputFile.format(".htm"), 
+            #                           self.__getXMLPath__(),
+            #                           flowsStatisticsList, "", 
+            #                           self.WorkspaceID )
 
-            self.__sm__(arcpy.GetMessages(),'AHMSG')
-            arcpy.CheckInExtension("Spatial")
+            #self.__sm__(arcpy.GetMessages(),'AHMSG')
+            #arcpy.CheckInExtension("Spatial")
 
             self.FlowReport = self.__parseXML__( outputFile.format(".xml"))
 
@@ -157,23 +155,17 @@ class FlowStatisticsWrapper(object):
     #region Constructor
         def __init__(self):
             try:
-                stabbr = arcpy.GetParameterAsText(0)
-                workspaceID = arcpy.GetParameterAsText(1)
-                directory = r"D:\gistemp\ClientData"
-                flowtype = arcpy.GetParameterAsText(2)
-
-                #set defaults
-                if stabbr == '#' or not stabbr:
-                   stabbr = 'IA'
-                if workspaceID == '#' or not workspaceID:
-                   workspaceID = 'IA'
-                if flowtype == '#' or not flowtype:
-                   flowtype = ''
+                parser = argparse.ArgumentParser()
+                parser.add_argument("-stabbr", help="specifies the abbr state name to perform delineation", type=str, default="IA")
+                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150708084648846000")
+                parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
+                parser.add_argument("-flowtype", help="specifies the ';' separated list of flow types to computed", type=str, default = r"PeakFlows;LowFlows")
+                args = parser.parse_args()
 
 
-                flowStats = FlowStatistics(directory, workspaceID, stabbr)
+                flowStats = FlowStatistics(args.directory, args.workspaceID, args.stabbr)
                 if flowStats.isInitialized:
-                    flowStats.Compute(flowtype)
+                    flowStats.Compute(args.flowtype)
                     Results = {"Statisitcs": flowStats.FlowReport,"Message":flowStats.Message.replace("'",'"').replace('\n',' ')}
                 else:
                     Results = {"Workspace": "","Message":flowStats.Message.replace("'",'"').replace('\n',' ')}
@@ -181,7 +173,7 @@ class FlowStatisticsWrapper(object):
                 Results = {"Workspace": "Error", "Message":traceback.format_exc()}
 
             finally:
-                arcpy.SetParameter(3, "Results="+json.dumps(Results))   
+                print "Results="+json.dumps(Results)   
     #endregion    
 
 # specifies that this class can be ran directly

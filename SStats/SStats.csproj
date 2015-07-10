@@ -76,7 +76,7 @@
     <Content Include="Assets\Scripts\Features.py" />
     <Content Include="Assets\Scripts\Delineation.py" />
     <Content Include="Assets\Scripts\DelineationTest.py" />
-    <Content Include="Assets\Scripts\FlowStatisticsGP.py" />
+    <Content Include="Assets\Scripts\FlowStatisticsTest.py" />
     <Content Include="Assets\Scripts\FlowStatistics.py" />
     <Content Include="Assets\Scripts\ToSHP.py" />
     <Content Include="packages.config" />

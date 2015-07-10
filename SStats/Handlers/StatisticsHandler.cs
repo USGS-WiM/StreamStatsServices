@@ -69,7 +69,7 @@ namespace SStats.Handlers
 
             }//end try
         }//end Get
-        [HttpOperation(HttpMethod.GET, ForUriName = "GetParametersFromWorkspaceID")]
+        [HttpOperation(HttpMethod.GET, ForUriName = "GetFlowStatsFromWorkspaceID")]
         public OperationResult GetFlowStatsFromWorkspaceID(String regioncode, string workspaceID, [Optional] String flowtypeList)
         {
             Object flows;
@@ -79,7 +79,7 @@ namespace SStats.Handlers
             {
                 //Return BadRequest if there is no ID 
                 if (string.IsNullOrEmpty(regioncode)|| string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no state or workspace specified" };
-                if (string.IsNullOrEmpty(flowtypeList)) flowtypeList ="";
+                if (!includeMethod(ref flowtypeList)) flowtypeList ="";
 
                 agent = new SSServiceAgent();
                 agent.WorkspaceString = workspaceID;
@@ -94,5 +94,37 @@ namespace SStats.Handlers
                 return new OperationResult.InternalServerError { ResponseResource = "error" };
             }
         }//end HttpMethod.GET
+
+        #region HelperMethods
+        private Boolean includeMethod(ref string boolean)
+        {
+            try
+            {
+                switch (boolean.ToLower().Trim())
+                {
+                    case "false":
+                    case "f":
+                    case "0":
+                    case "no":
+                        return false;
+                    case "true":
+                    case "t":
+                    case "1":
+                    case "yes":
+                        boolean = string.Empty;
+                        return true;
+
+                    default:
+                        return true;
+                }
+
+            }
+            catch (Exception)
+            {
+                boolean = string.Empty;
+                return true;
+            }
+        }
+        #endregion
     }
 }

@@ -49,7 +49,7 @@ namespace SStats.Utilities.ServiceAgent
 
         #region Methods
 
-        public void GetDelineation(double x, double y, int espg, int simplificationOption, String basinCode)
+        public void Delineate(double x, double y, int espg, String basinCode)
         {
             JObject result = null;
             string msg;
@@ -58,11 +58,11 @@ namespace SStats.Utilities.ServiceAgent
             {
                 if (!validStudyCode(basinCode)) basinCode = sa.GetStudyCode(x, y, espg);
 
-                result = Execute(getProcessRequest(getProcessName(processType.e_delineation), getBody(basinCode, x, y, espg, simplificationOption))) as JObject;
+                result = Execute(getProcessRequest(getProcessName(processType.e_delineation), getBody(basinCode, x, y, espg))) as JObject;
 
                 if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
 
-                HasGeometry = parseSSGWDelineationResult(result, simplificationOption);
+                parseDelineationResult(result);
             }
             catch (Exception ex)
             {
@@ -80,7 +80,7 @@ namespace SStats.Utilities.ServiceAgent
 
                 ///get list
                 List<Parameter> parameters = GetRegionAvailableParameters(state);
-                List<Parameter> selectedList = parameters.Where(p => requestPCodes.Contains(p.code)).ToList();
+                List<Parameter> selectedList = parameters.Where(p => requestPCodes.Contains(p.code.ToLower())).ToList();
 
                 if (selectedList != null && selectedList.Count > 0) parameters = selectedList;
                 result = Execute(getProcessRequest(getProcessName(processType.e_parameters), getBody(state, parameters))) as JObject;
@@ -187,24 +187,26 @@ namespace SStats.Utilities.ServiceAgent
         }
         public dynamic GetFlowStatistics(string state, string flowtypeList)
         {
-            var result = Execute(getProcessRequest(getProcessName(processType.e_flowstats), getstatisticsBody(state, flowtypeList))) as JObject;
+            List<string> requestfCodes;
+
+            requestfCodes = this.parse(flowtypeList);
+
+            var result = Execute(getProcessRequest(getProcessName(processType.e_flowstats), getstatisticsBody(state, requestfCodes))) as JObject;
 
             return result;
         }
 
-        public List<FeatureWrapper> GetFeatures(string features)
+        public List<FeatureWrapper> GetFeatures(string features, Int32 simplificationOption = 1)
         {
             List<string> requestFcodes = new List<string>();
             List<FeatureWrapper> results;
             try
             {
-                //check if features already exist in collection
-                foreach (var item in parse(features))
-                    if (!this._featureResultList.ContainsKey(item)) requestFcodes.Add(item);
-                loadFeatures(string.Join(";", requestFcodes));
+
+                loadFeatures(features, simplificationOption);
 
                 if (string.IsNullOrEmpty(features)) results = this._featureResultList.Select(x => x.Value).ToList();
-                else results = this._featureResultList.Where(x => parse(features).Contains(x.Key.ToUpper())).Select(x => x.Value).ToList();
+                else results = this._featureResultList.Select(x => x.Value).ToList();
 
                 return results;
 
@@ -234,17 +236,16 @@ namespace SStats.Utilities.ServiceAgent
                 return false;
             }
         }
-        private string getBody(string state, double X, double Y, int wkid, int simplificationOption)
+        private string getBody(string state, double X, double Y, int wkid)
         {
             List<string> body = new List<string>();
             try
             {
+                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
                 body.Add("-stabbr " + state);
-                body.Add("-processSR " + wkid);
                 body.Add(String.Format("-pourpoint [{0},{1}]",X,Y));
                 body.Add("-pourpointwkid " + wkid);
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
-                body.Add("-simplification " + simplificationOption);
+                body.Add("-processSR " + wkid);
                 return string.Join(" ", body);
             }
             catch (Exception)
@@ -252,28 +253,22 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }//end getParameterList   
-        private Boolean parseSSGWDelineationResult(JObject SSdelineationResult, Int32 simplificationOption)
+        private void parseDelineationResult(JObject SSdelineationResult)
         {
-            List<FeatureBase> feature = null;
-            int wkid = -9;
-            string geomType = string.Empty;
-            List<Field> fields = null;
             char[] delimiterChars = { '_'};
             try
             {
                 JToken results = SSdelineationResult;
                 this.WorkspaceString = results.Value<string>("Workspace");
-                if (isFeature(results["Watershed"], out feature, out wkid, out geomType, out fields)) addToFeatureList((simplificationOption == 1) ? "delineatedbasin" : "delineatedbasin(simplified)", feature, wkid, geomType, fields);
-                if (isFeature(results["PourPoint"], out feature, out wkid, out geomType, out fields)) addToFeatureList("pourpoint", feature, wkid, geomType, fields);
                 this.sm(results.Value<string>("Message").
                     Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).Where(msg => msg.Contains("AHMSG:"))
                                                                                 .Select(msg => msg.Substring((msg.IndexOf("Start Time:")) > 0 ? msg.IndexOf("Start Time:") : 0)).ToList());
                 
-                return true;
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-                return false;
+                sm("Error parsing delineation result " + ex.Message);
+                throw new Exception("Error parsing delineation result " + ex.Message);
             }//end try
         }//end parseDelineatinResult 
        
@@ -319,11 +314,14 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Statistics Helper Methods
-        private string getstatisticsBody(string state,string flowtype )
+        private string getstatisticsBody(string state,List<string> flowtypeList )
         {
             List<string> body = new List<string>();
+            string flowtype = string.Empty;
             try
             {
+                flowtype = string.Join(";", flowtypeList.Select(p => p).ToList());
+
                 body.Add("-stabbr " + state);
                 if(!string.IsNullOrEmpty(flowtype))
                     // double quotes around flow type to account for spaces"
@@ -341,17 +339,17 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Feature Helper Methods
-        private string loadFeatures(string feature)
+        private string loadFeatures(string feature, Int32 simplificationOption)
         {
             JObject result = null;
             List<string> requestFCodes;
             string msg;
             try
             {
-                requestFCodes = getRequestedFeatures(feature);
-                if(string.IsNullOrEmpty(this.WorkspaceString)) throw new Exception("workspace string must be set");
+                requestFCodes = parse(feature);
+                if(string.IsNullOrEmpty(this.WorkspaceString)) throw new Exception("workspace string must not be null");
                 
-                result = Execute(getProcessRequest(getProcessName(processType.e_features), getBody(requestFCodes))) as JObject;
+                result = Execute(getProcessRequest(getProcessName(processType.e_features), getBody(requestFCodes, simplificationOption))) as JObject;
                 if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
                 return parseFeatures(result);
 
@@ -362,7 +360,7 @@ namespace SStats.Utilities.ServiceAgent
             }
 
         }
-        private string getBody(List<string> fList)
+        private string getBody(List<string> fList, int simplificationOption)
         {
             List<string> body = new List<string>();
             try
@@ -371,6 +369,7 @@ namespace SStats.Utilities.ServiceAgent
                     body.Add("-includefeatures "+ string.Join(";", fList.Select(f => f).ToList()));
                 body.Add("-workspaceID " + this.WorkspaceString);
                 body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-simplification " + simplificationOption);
 
 
                 return string.Join(" ", body);
@@ -399,23 +398,6 @@ namespace SStats.Utilities.ServiceAgent
                 {
                     features = null;
                     var name = item.Value<string>("name");
-                    switch (name)
-                    {
-                        case "globalwatershedpoint":
-                            name = "pourpoint";
-                            break;
-                        case "globalwatershedraw":
-                            continue;
-                        case "globalwatershed":
-                            name = "delineatedbasin";
-                            break;
-                        case "simplifiedgw":
-                            name = "delineatedbasin(simplified)";
-                            break;
-                        default:
-                            break;
-                    }//end switch
-
                     featurelist.Add(name);
 
 
@@ -435,39 +417,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }//end try
         }
-        private List<string> getRequestedFeatures(string features){
-            List<string> requestFCodes = new List<string>();
 
-            try
-            {
-                foreach (string item in parse(features))
-                {
-                    switch (item.ToLower())
-                    {
-                        case "pourpoint":
-                            requestFCodes.Add("globalwatershedpoint");
-                            break;
-                        case "delineatedbasin":
-                            requestFCodes.Add("globalwatershed");
-                            break;
-                        case "delineatedbasin(simplified)":
-                            requestFCodes.Add("simplifiedgw");
-                            break;
-                        default:
-                            requestFCodes.Add(item);
-                            break;
-                    }//end switch
-                }//next item
-
-                return requestFCodes;
-            }
-            catch (Exception)
-            {
-                
-                throw;
-            }
-        
-        }
         #endregion
 
         #region Other Helper Methods
@@ -563,8 +513,8 @@ namespace SStats.Utilities.ServiceAgent
         }
         private List<string> parse(string items)
         {
-            char[] delimiterChars = { ';', ',', ' ' };
-            return items.ToUpper().Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).ToList();
+            char[] delimiterChars = { ';', ','};
+            return items.ToLower().Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).ToList();
         }
         private void sm(string msg) {
             this._message.Add(msg);
@@ -587,5 +537,4 @@ namespace SStats.Utilities.ServiceAgent
 
         #endregion
     }
-
 }
