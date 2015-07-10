@@ -30,7 +30,6 @@ import shutil
 import json
 import ArcHydroTools
 from arcpy.sa import *
-import arcpy.cartography as CA
 import logging
 import re
 
@@ -40,9 +39,6 @@ import xml.dom.minidom
 class Delineation(object):
     #region Constructor
     def __init__(self, regionID, directory):
-        
-        self.Watershed = None
-        self.PourPoint = None        
         self.Message =""
         self.__schemaPath__ = r"D:\ss_socs\ss_gp\schemas"
         self.__xmlPath__ = r"D:\ss_apps\XML" 
@@ -62,7 +58,7 @@ class Delineation(object):
     #endregion   
         
     #region Methods   
-    def Delineate(self, processSR, PourPoint, simplificationType):
+    def Delineate(self, processSR, PourPoint):
         xmlPath =''
         datasetPath = ''
         featurePath=''
@@ -70,8 +66,6 @@ class Delineation(object):
         sr = None
         GWP = None
         GW = None
-        elimGW = None
-        result = None
 
         try:
             arcpy.env.overwriteOutput = True
@@ -88,7 +82,7 @@ class Delineation(object):
             
             GWP = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedPoint", "POINT", 
                                                       self.__templatePath__.format("GlobalWatershedPoint") , "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
-            GW = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedRaw", "POLYGON", 
+            GW = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershed", "POLYGON", 
                                                      self.__templatePath__.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
             
             xmlPath = self.__SSXMLPath__("StreamStats{0}.xml".format(self.__regionID__), self.__TempLocation__, self.__TempLocation__)
@@ -98,18 +92,7 @@ class Delineation(object):
             ArcHydroTools.StreamstatsGlobalWatershedDelineation(PourPoint, GW, GWP, xmlPath , "CLEARFEATURES_NO", self.WorkspaceID)
             self.__sm__(arcpy.GetMessages(),'AHMSG')
             arcpy.CheckInExtension("Spatial")
-
-            self.__sm__("finished Delineation., removing holes")
-            #remove holes  
-            result = self.__removePolygonHoles__(GW,featurePath,sr)
-
-            if simplificationType == 2:
-                result = self.__getSimplifiedPolygon__(result,featurePath)
-                self.__sm__("Watershed simplified") 
-
-            self.Watershed = self.__ToJSON__(result)
-            self.PourPoint = self.__ToJSON__(GWP)
-
+            
             self.__sm__("Finished")
         except:
             tb = traceback.format_exc()
@@ -117,8 +100,6 @@ class Delineation(object):
 
         finally:
             #Local cleanup
-            del result
-            del elimGW
             del GWP
             del GW
             del sr            
@@ -127,20 +108,7 @@ class Delineation(object):
     #endregion  
       
     #region Helper Methods
-    def __removePolygonHoles__(self, polyFC, path, sr):
-        try:
-            elimGW = arcpy.CreateFeatureclass_management(path, "GlobalWatershed", "POLYGON", 
-                                                         self.__templatePath__.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
-
-            result = arcpy.EliminatePolygonPart_management(polyFC, elimGW, "AREA_OR_PERCENT", "1000 squaremeters", 1, "CONTAINED_ONLY")
-
-            self.__sm__(arcpy.GetMessages())
-            return result
-        except:
-            tb = traceback.format_exc()
-            self.__sm__("Error removing holes "+tb,"ERROR")
-            return polyFC
-            
+           
     def __getDirectory__(self, subDirectory, makeTemp = True):
         try:
             if os.path.exists(subDirectory): 
@@ -184,59 +152,6 @@ class Delineation(object):
                 file.close 
                 file = None
 
-    def __ToJSON__(self, fClass):
-        featSet = None
-        try:
-            featSet = arcpy.FeatureSet()
-            featSet.load(fClass)
-            jsonStr = arcpy.Describe(featSet).json
-
-            return json.loads(jsonStr)
-        except:
-            tb = traceback.format_exc()
-            self.__sm__("Failed to serialize " + tb,"ERROR")
-
-    def __getSimplifiedPolygon__(self, PolygonFC, directory):
-        tolerance = 10
-        try:
-            
-            self.__sm__("Simplifying Watershed")
-            numVerts = self.__getVerticesCount__(PolygonFC)
-            self.__sm__("Number of vertices: " + str(numVerts))            
-            if numVerts < 100:      
-                #no need to simplify
-                return PolygonFC
-            elif numVerts < 1000:
-                tolerance = 10
-            elif numVerts < 2000:
-                tolerance = 20
-            else:
-                tolerance = 30
-                      
-            self.__sm__("Tolerance: "+str(tolerance))
-            simplifiedGW = CA.SimplifyPolygon(PolygonFC, os.path.join(directory,"simplifiedGW"), "POINT_REMOVE", str(tolerance) +" Feet", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
-            self.__sm__(arcpy.GetMessages()) 
-            return simplifiedGW[0]
-
-        except:  
-            tb = traceback.format_exc()                  
-            self.__sm__("Error Simplifying: " + tb,"ERROR")
-
-            return PolygonFC
-        
-    def __getVerticesCount__(self, polyFC):
-        rtn = 0
-        try:
-            arcpy.AddField_management(polyFC, "numVert", "LONG", "", "", "", "", "NULLABLE", "NON_REQUIRED", "")
-            arcpy.CalculateField_management(polyFC, "numVert", "!shape.pointcount!", "PYTHON_9.3", "")
-            with arcpy.da.SearchCursor(polyFC, ("numVert")) as cursor:
-                for row in cursor:
-                    if row[0] > rtn:
-                        rtn= row[0]
-            return rtn
-        except:
-            return -1
-
     def __sm__(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
@@ -251,9 +166,7 @@ class Delineation(object):
 class DelineationWrapper(object):
     #region Constructor
     def __init__(self):
-        regionID =""
-        pourpoint= None
-        simplification = 1
+
         try:
             parser = argparse.ArgumentParser()
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
@@ -262,8 +175,6 @@ class DelineationWrapper(object):
                                 default = '[-93.7364137172699,42.306129898064221]')
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, 
                                 default = '4326')
-          
-            parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 1)
             parser.add_argument("-processSR", help="specifies the spatial ref to perform operation", type=int, default = 4326)
                 
             args = parser.parse_args()
@@ -274,17 +185,12 @@ class DelineationWrapper(object):
             
             ppoint = self.__JsonToFeature__(args.pourpoint,args.pourpointwkid);
 
-            simplification = args.simplification
-            if simplification == '#' or not simplification:
-                simplification = 1
-
+ 
             ssdel = Delineation(regionID, args.directory)
-            ssdel.Delineate(args.processSR, ppoint, simplification)
+            ssdel.Delineate(args.processSR, ppoint)
 
             Results = {
                        "Workspace": ssdel.WorkspaceID,
-                       "Watershed":ssdel.Watershed,
-                       "PourPoint": ssdel.PourPoint,
                        "Message": ssdel.Message.replace("'",'"').replace('\n',' ')
                       }
 

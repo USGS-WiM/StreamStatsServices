@@ -206,8 +206,8 @@ namespace SStats.Utilities.ServiceAgent
                 if (wkid < 1) wkid = 102100;
                 //set to featureCollection
 
-                this.DelineationResultList.Add(ResultType.e_basin, new EsriFeatureRecordSet(features, wkid, "esriGeometryPolygon"));
-                this.DelineationResultList.Add(ResultType.e_pourpoint, new EsriFeatureRecordSet(features, wkid, "esriGeometryPoint"));
+                this.DelineationResultList.Add(ResultType.e_basin, new EsriFeatureRecordSet(features, wkid, "esriGeometryPolygon",null));
+                this.DelineationResultList.Add(ResultType.e_pourpoint, new EsriFeatureRecordSet(features, wkid, "esriGeometryPoint", null));
                 return true;
             }
             catch (Exception)
