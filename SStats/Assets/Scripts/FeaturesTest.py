@@ -125,7 +125,7 @@ class FeaturesWrapper(object):
     def __init__(self):
         try:
             parser = argparse.ArgumentParser()
-            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="NY20150527140348282000")
+            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150619101449524000")
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")              
             parser.add_argument("-includefeatures", help="specifies the projects working directory", type=str, default = r"")            
             args = parser.parse_args()
