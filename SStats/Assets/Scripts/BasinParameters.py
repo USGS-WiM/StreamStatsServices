@@ -75,7 +75,7 @@ class BasinParameters(object):
            
             arcpy.CheckOutExtension("Spatial")
             self.__sm__("Stated calc params")
-            ArcHydroTools.StreamstatsGlobalParametersServer(os.path.join(workspace,"GlobalWatershedRaw"), 
+            ArcHydroTools.StreamstatsGlobalParametersServer(os.path.join(workspace,"GlobalWatershed"), 
                                                             os.path.join(workspace,"GlobalWatershedPoint"), 
                                                             parameters, outputFile.format(".xml"), outputFile.format(".htm"), 
                                                             self.__getXMLPath__(),"", self.WorkspaceID )

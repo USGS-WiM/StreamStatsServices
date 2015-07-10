@@ -81,6 +81,9 @@ namespace SStats.Handlers
 
             }//end try
         }//end Get
-    
+
+        #region Helper Methods
+        
+        #endregion
     }//end class
 }//end namespace

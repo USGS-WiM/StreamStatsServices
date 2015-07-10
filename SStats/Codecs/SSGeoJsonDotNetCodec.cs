@@ -46,25 +46,24 @@ namespace SStats.Codecs.json
     {
         public override void WriteTo(object entity, IHttpEntity response, string[] paramneters)
         {
-            Watershed watershedEntity = null;
-            
+            List<FeatureWrapper> fw = null;
             try
             {            
                 if (entity == null)
                     return;
 
                 if (entity.GetType() == typeof(Watershed)) 
+                    fw = ((Watershed)entity).FeatureList;
+                else if (entity.GetType() == typeof(Features))
+                    fw =  ((Features)entity).FeatureList;
+                 
+                if (fw != null)
                 {
-                    watershedEntity = (Watershed)entity;
-
-                    foreach (FeatureWrapper item in watershedEntity.FeatureList)
+                    foreach (FeatureWrapper item in fw)
                     {
                         if (item.feature.GetType() == typeof(EsriFeatureRecordSet))
                             item.feature = (FeatureCollection)(item.feature as EsriFeatureRecordSet);
                     }//next item
-
-                    entity = watershedEntity;
-
                 }//endif 
 
                 //reset content type to json
