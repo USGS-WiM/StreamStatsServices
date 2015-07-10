@@ -75,7 +75,7 @@ class FlowStatistics(object):
             arcpy.CheckOutExtension("Spatial")
             self.__sm__("Stated calc flow statistics")
 
-            ArcHydroTools.ComputeFlows(os.path.join(workspace,"GlobalWatershedRaw"), 
+            ArcHydroTools.ComputeFlows(os.path.join(workspace,"GlobalWatershed"), 
                                        os.path.join(workspace,"GlobalWatershedPoint"), 
                                        outputFile.format(".xml"), outputFile.format(".htm"), 
                                        self.__getXMLPath__(),

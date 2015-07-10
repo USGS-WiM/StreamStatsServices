@@ -76,8 +76,8 @@ namespace SStats
         #region Helper methods
         private void addWatershedResource(){
         ResourceSpace.Has.ResourcesOfType<Watershed>()
-                .AtUri("/watershed?rcode={regioncode}&xlocation={X}&ylocation={Y}&crs={espg}&simplify={simplificationOption}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}")
-                .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}").Named("GetWatershedFromWorkspaceID")
+                .AtUri("/watershed?rcode={regioncode}&xlocation={X}&ylocation={Y}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}")
+                .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}").Named("GetWatershedFromWorkspaceID")
                 .HandledBy<WatershedHandler>()
                 .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
                 .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
@@ -105,13 +105,13 @@ namespace SStats
                     .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
 
             ResourceSpace.Has.ResourcesOfType<dynamic>()
-             .AtUri("flowstatistics?rcode={regioncode}&workspaceID={workspaceID}&flowtypes={flowtypeList}").Named("GetFlowStatsFromWorkspaceID")
+             .AtUri("flowstatistics?rcode={regioncode}&workspaceID={workspaceID}&includeflowtypes={flowtypeList}").Named("GetFlowStatsFromWorkspaceID")
             .HandledBy<StatisticsHandler>()
             .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
         }
         private void addFeatureResource() {
             ResourceSpace.Has.ResourcesOfType<Features>()
-             .AtUri("/features?workspaceID={workspaceID}&includefeatures={featureList}")
+             .AtUri("/features?workspaceID={workspaceID}&includefeatures={featureList}&simplify={simplificationOption}")
              .HandledBy<FeatureHandler>()
              .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
              .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")

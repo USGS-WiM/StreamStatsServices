@@ -46,7 +46,7 @@ class Features(object):
         self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
 
         #set up logging
-        logdir = os.path.join(self.__MainDirectory__, 'Feature.log')
+        logdir = os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'Feature.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
 
          #Test if workspace exists before run   
@@ -63,7 +63,7 @@ class Features(object):
         
     #region Methods   
    
-    def GetFeatures(self, featurelist=''):
+    def GetFeatures(self, featurelist='', simplificationType=1):
         
         try:
             if featurelist == '':
@@ -76,7 +76,7 @@ class Features(object):
                     if f.lower() in self.FeaturesList:
                         self.Features.append({
                                                 "name" : f,                                  
-                                                "feature": self.__ToJSON__(f)
+                                                "feature": self.__simplify__(f, simplificationType)
                                               })
         except:
             tb = traceback.format_exc()
@@ -109,6 +109,61 @@ class Features(object):
             tb = traceback.format_exc()
             self.__sm__("Failed to serialize " + tb,"ERROR")
 
+    def __simplify__(self, fc, simplificationType):
+        tolerance = 10
+        simplifiedfc = None
+        try:
+            desc = arcpy.Describe(fc)
+            type = desc.shapeType
+            if simplificationType == 1 or type == "Point" : 
+                 return self.__ToJSON__(fc)
+        
+            numVerts = self.__getVerticesCount__(fc)
+            self.__sm__("Number of vertices: " + str(numVerts))            
+            if numVerts < 100:      
+                #no need to simplify
+                return fc
+            elif numVerts < 1000:
+                tolerance = 10
+            elif numVerts < 2000:
+                tolerance = 20
+            else:
+                tolerance = 30
+                                          
+            self.__sm__("Simplifying feature with tolerance: "+str(tolerance))
+
+            if type == 'Polygon':
+                simplifiedfc = CA.SimplifyPolygon(fc, "simplified", "POINT_REMOVE", str(tolerance) +" Feet", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
+            else:
+                simplifiedfc = CA.SimplifyLine(fc, "simplified", "POINT_REMOVE", str(tolerance) +" Feet", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
+
+
+                
+            self.__sm__(arcpy.GetMessages()) 
+            return self.__ToJSON__(simplifiedfc)
+
+        except:  
+            tb = traceback.format_exc()                  
+            self.__sm__("Error Simplifying: " + tb,"ERROR")
+
+            return self.__ToJSON__(fc)
+        finally:
+            if simplifiedfc != None: arcpy.Delete_management(simplifiedfc)
+        
+    def __getVerticesCount__(self, polyFC):
+        rtn = 0
+        try:
+            arcpy.AddField_management(polyFC, "numVert", "LONG", "", "", "", "", "NULLABLE", "NON_REQUIRED", "")
+            arcpy.CalculateField_management(polyFC, "numVert", "!shape.pointcount!", "PYTHON_9.3", "")
+            with arcpy.da.SearchCursor(polyFC, ("numVert")) as cursor:
+                for row in cursor:
+                    if row[0] > rtn:
+                        rtn= row[0]
+            return rtn
+        except:
+            return -1
+
+    
     def __sm__(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
@@ -125,14 +180,19 @@ class FeaturesWrapper(object):
     def __init__(self):
         try:
             parser = argparse.ArgumentParser()
-            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="NY20150527140348282000")
+            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150708084648846000")
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")              
-            parser.add_argument("-includefeatures", help="specifies the projects working directory", type=str, default = r"")            
+            parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"")
+            parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)             
             args = parser.parse_args()
+
+            simplification = args.simplification
+            if simplification == '#' or not simplification:
+                simplification = 1
 
             ssfeature = Features(args.directory, args.workspaceID)
     
-            ssfeature.GetFeatures(args.includefeatures)
+            ssfeature.GetFeatures(args.includefeatures, simplification)
             
             Results = {
                        "Workspace": ssfeature.WorkspaceID,
