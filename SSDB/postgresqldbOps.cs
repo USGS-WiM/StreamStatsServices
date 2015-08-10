@@ -108,31 +108,33 @@ namespace SSDB
         #endregion
         #endregion
         #region "Methods"
-        public List<Parameter> GetParameterList()
+        public Boolean LoadParameterList(List<Parameter> plist)
         {
+            string sql = string.Empty;
+            Parameter selectedParameter = null;
+            Int32 dbcount = 0;
             try
             {
-                List<Parameter> para = new List<Parameter>();
+                sql = string.Format(getSQL(StreamStatsSQLType.e_parameters), String.Join(" OR ", 
+                                            plist.Select(p=>String.Format("LOWER(statlabel) = LOWER('{0}')",p.code))));
 
                 this.OpenConnection();
-                NpgsqlCommand command = new NpgsqlCommand("select * from basin_char_defs", this.connection);
-
+                NpgsqlCommand command = new NpgsqlCommand(sql, this.connection);
+        
                 using (NpgsqlDataReader reader = command.ExecuteReader())
                 {
                     while (reader.Read())
                     {
-                        para.Add (new Parameter()
-                        {
-                            code = reader["Label"].ToString(),
-                            description = reader["Definition"].ToString(),
-                            unit = reader["English"].ToString()
-                        });
-                    }
-                }
+                        selectedParameter = plist.FirstOrDefault(p => p.code == reader["statlabel"].ToString());
+                        if (selectedParameter == null) continue;
+                        dbcount++;
+                        selectedParameter.description = reader["Definition"].ToString();
+                        selectedParameter.unit = reader["English"].ToString();                     
+                    }//next parameter
+                    sm("DB definition return count: " + dbcount.ToString());
+                 }
 
-                return para;
-
-
+                return true;
             }
             catch (Exception ex)
             {
@@ -212,6 +214,22 @@ namespace SSDB
         }
         #endregion
         #region "Helper Methods"
+        private string getSQL(StreamStatsSQLType type) {
+            string results = string.Empty;
+            switch (type)
+            {
+                case StreamStatsSQLType.e_parameters:
+                    results = @"SELECT statlabel.statlabel,statlabel.definition, units.english 
+                                FROM statlabel
+                                INNER Join units ON (statlabel.unitid = units.unitid)
+                                WHERE {0};";
+                    break;
+                default:
+                    break;
+            }
+
+            return results;
+        }
         private void OpenConnection()
         {
             try
@@ -242,6 +260,10 @@ namespace SSDB
         }
         #endregion
         #region "Enumerated Constants"
+        private enum StreamStatsSQLType
+        {
+            e_parameters
+        }
         #endregion
 
        

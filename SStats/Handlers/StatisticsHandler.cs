@@ -40,6 +40,7 @@ using System.Web;
 using System.Xml.Serialization;
 
 using WiM.Utilities.Storage;
+using WiM.Exceptions;
 
 using SStats.Utilities;
 using SStats.Utilities.ServiceAgent;
@@ -81,13 +82,16 @@ namespace SStats.Handlers
                 if (string.IsNullOrEmpty(regioncode)|| string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no state or workspace specified" };
                 if (!includeMethod(ref flowtypeList)) flowtypeList ="";
 
-                agent = new SSServiceAgent();
-                agent.WorkspaceString = workspaceID;
+                agent = new SSServiceAgent(workspaceID);
 
                 flows = agent.GetFlowStatistics(regioncode, flowtypeList);                   
           
                 return new OperationResult.OK { ResponseResource = flows };
 
+            }
+            catch (BadRequestException ex)
+            {
+                return new OperationResult.BadRequest { ResponseResource = ex.Message.ToString() };
             }
             catch (Exception ex)
             {

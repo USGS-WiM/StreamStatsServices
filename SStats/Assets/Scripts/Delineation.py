@@ -16,6 +16,7 @@
 #       
 
 #region "Comments"
+#08.07.2015 jkn - modified to store in local projection
 #11.05.2014 jkn - Created/ Adapted from John Guthrie's getGW12.py
 #endregion
 
@@ -58,7 +59,7 @@ class Delineation(object):
     #endregion   
         
     #region Methods   
-    def Delineate(self, processSR, PourPoint):
+    def Delineate(self, PourPoint):
         xmlPath =''
         datasetPath = ''
         featurePath=''
@@ -72,7 +73,8 @@ class Delineation(object):
             arcpy.env.workspace = self.__TempLocation__
             arcpy.env.scratchWorkspace = self.__TempLocation__
             
-            sr = arcpy.SpatialReference(int(processSR))
+            sr = arcpy.Describe(self.__templatePath__.format("GlobalWatershedPoint")).spatialReference
+            self.__sm__("Template spatial ref: "+ sr.name)
 
             self.__sm__("Delineation Started") 
             datasetPath = arcpy.CreateFileGDB_management(self.__WorkspaceDirectory__, self.WorkspaceID +'.gdb')[0]
@@ -82,7 +84,7 @@ class Delineation(object):
             
             GWP = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedPoint", "POINT", 
                                                       self.__templatePath__.format("GlobalWatershedPoint") , "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
-            GW = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershed", "POLYGON", 
+            GW = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedTemp", "POLYGON", 
                                                      self.__templatePath__.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
             
             xmlPath = self.__SSXMLPath__("StreamStats{0}.xml".format(self.__regionID__), self.__TempLocation__, self.__TempLocation__)
@@ -90,6 +92,10 @@ class Delineation(object):
             arcpy.CheckOutExtension("Spatial")
             self.__sm__("Starting Delineation")
             ArcHydroTools.StreamstatsGlobalWatershedDelineation(PourPoint, GW, GWP, xmlPath , "CLEARFEATURES_NO", self.WorkspaceID)
+
+            #remove holes  
+            self.__removePolygonHoles__(GW,featurePath,sr)
+
             self.__sm__(arcpy.GetMessages(),'AHMSG')
             arcpy.CheckInExtension("Spatial")
             
@@ -101,14 +107,26 @@ class Delineation(object):
         finally:
             #Local cleanup
             del GWP
-            del GW
             del sr            
             arcpy.Delete_management(PourPoint)
+            arcpy.Delete_management(GW)
             #arcpy.Delete_management(self.__TempLocation__)
     #endregion  
       
     #region Helper Methods
-           
+    def __removePolygonHoles__(self, polyFC, path, sr):
+        try:
+            elimGW = arcpy.CreateFeatureclass_management(path, "GlobalWatershed", "POLYGON", 
+                                                         self.__templatePath__.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
+
+            result = arcpy.EliminatePolygonPart_management(polyFC, elimGW, "AREA_OR_PERCENT", "90 squaremeters", 1, "CONTAINED_ONLY")
+
+            self.__sm__(arcpy.GetMessages())
+            return result
+        except:
+            tb = traceback.format_exc()
+            self.__sm__("Error removing holes "+tb,"ERROR")
+            return polyFC       
     def __getDirectory__(self, subDirectory, makeTemp = True):
         try:
             if os.path.exists(subDirectory): 
@@ -175,7 +193,6 @@ class DelineationWrapper(object):
                                 default = '[-93.7364137172699,42.306129898064221]')
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, 
                                 default = '4326')
-            parser.add_argument("-processSR", help="specifies the spatial ref to perform operation", type=int, default = 4326)
                 
             args = parser.parse_args()
 
@@ -187,7 +204,7 @@ class DelineationWrapper(object):
 
  
             ssdel = Delineation(regionID, args.directory)
-            ssdel.Delineate(args.processSR, ppoint)
+            ssdel.Delineate(ppoint)
 
             Results = {
                        "Workspace": ssdel.WorkspaceID,

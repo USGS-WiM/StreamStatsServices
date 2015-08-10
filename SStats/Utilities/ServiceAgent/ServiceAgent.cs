@@ -111,7 +111,7 @@ namespace SStats.Utilities.ServiceAgent
         {
             postgresqldbOps db = null;
             SSXMLAgent xml = null;
-            List<Parameter> dbParameterList;
+            //List<Parameter> dbParameterList;
             List<Parameter> regionParameterList;
             try
             {
@@ -119,18 +119,11 @@ namespace SStats.Utilities.ServiceAgent
                 xml = new SSXMLAgent(state);
 
                 //returns all code units and description
-                dbParameterList = db.GetParameterList(); 
+                
                 //returns name, code for selected region
                 regionParameterList = xml.GetRegionParameters();
-
-                foreach (Parameter param in regionParameterList)
-                {
-                    Parameter selectedParam = dbParameterList.FirstOrDefault(p=>string.Equals(p.code, param.code, StringComparison.OrdinalIgnoreCase));
-                    if (selectedParam == null) continue;
-                    param.unit = selectedParam.unit;
-                    param.description = selectedParam.description;
-                }//next param
-
+                db.LoadParameterList(regionParameterList); 
+                
                 return regionParameterList;
             }
             catch (Exception ex)

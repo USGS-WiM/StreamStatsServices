@@ -41,6 +41,7 @@ using System.Web;
 using System.Xml.Serialization;
 
 using WiM.Utilities.Storage;
+using WiM.Exceptions;
 
 using SStats.Utilities;
 using SStats.Utilities.ServiceAgent;
@@ -61,18 +62,12 @@ namespace SStats.Handlers
             {
                 //Return BadRequest if there is no ID 
                 if (string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no filename specified" };
-                if (workspaceID.Contains("/")) workspaceID = workspaceID.Replace("/", "\\");
-
+               
                 fType = getFileTypeByName(f);
-                if (fType != fileTypeEnum.e_geodatabase)
-                {
-                    sAgent = new SSServiceAgent();
-                    workspaceID = sAgent.GetWorkspace(workspaceID, (Int32)fType);                    
-                }
-                else
-                {
-                    workspaceID = Path.Combine(workspaceID, workspaceID + ".gdb");
-                }
+             
+                sAgent = new SSServiceAgent(workspaceID);
+                workspaceID = sAgent.GetWorkspace((Int32)fType);                  
+              
 
                 Storage aStorage = new Storage(ConfigurationManager.AppSettings["SSRepository"]);
                 
@@ -83,6 +78,10 @@ namespace SStats.Handlers
           
                 return new OperationResult.OK { ResponseResource = fileItem };
 
+            }
+            catch (BadRequestException ex)
+            {
+                return new OperationResult.BadRequest { ResponseResource = ex.Message.ToString(), Title = "What" };
             }
             catch (Exception ex)
             {
