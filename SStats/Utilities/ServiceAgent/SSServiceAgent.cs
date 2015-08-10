@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using WiM.Utilities.ServiceAgent;
 using WiM.Resources;
 using WiM.Resources.Spatial;
+using WiM.Exceptions;
 
 using SStats.Resources;
 using SSDB;
@@ -24,7 +25,7 @@ namespace SStats.Utilities.ServiceAgent
         #region Properties
         private IDictionary<string, FeatureWrapper> _featureResultList = new Dictionary<string, FeatureWrapper>(StringComparer.InvariantCultureIgnoreCase);
 
-        public string WorkspaceString { get; set; }
+        public string WorkspaceString { get; private set; }
         private List<string> _message = new List<string>();
         public List<string> Messages
         {
@@ -42,6 +43,7 @@ namespace SStats.Utilities.ServiceAgent
         public SSServiceAgent(string workspaceID)
             : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
+            if (!isValidWorkspace(workspaceID)) throw new BadRequestException(workspaceID + " Is not valid"); 
             WorkspaceString = workspaceID;
             HasGeometry = false;
         }
@@ -97,35 +99,27 @@ namespace SStats.Utilities.ServiceAgent
         {
             postgresqldbOps db = null;
             SSXMLAgent xml = null;
-            List<Parameter> dbParameterList;
+            //List<Parameter> dbParameterList;
             List<Parameter> regionParameterList;
             List<string> groupCodes;
             try
             {
-                db = new postgresqldbOps(ConfigurationManager.AppSettings["SSDBConnectionString"]);               
-                //returns all code units and description
-                dbParameterList = db.GetParameterList();
-                groupCodes = db.GetGroupCodes(state, group);
-                this.sm(db.Messages);
-
-
                 //returns name, code for selected region
                 xml = new SSXMLAgent(state);
                 regionParameterList = xml.GetRegionParameters();
                 this.sm(xml.Messages);
 
+                db = new postgresqldbOps(ConfigurationManager.AppSettings["SSDBConnectionString"]);
+                groupCodes = db.GetGroupCodes(state, group);
+
                 if (groupCodes.Count > 0) { 
                     regionParameterList = regionParameterList.Where(a => groupCodes.Contains(a.code)).ToList();
                     sm("sync w/ group. Final Count:" + regionParameterList.Count);
-                }              
-                
-                foreach (Parameter param in regionParameterList)
-                {
-                    Parameter selectedParam = dbParameterList.FirstOrDefault(p => string.Equals(p.code, param.code, StringComparison.OrdinalIgnoreCase));
-                    if (selectedParam == null) { this.sm(param.code + " failed to return a description and unit from the database"); continue; }
-                    param.unit = selectedParam.unit;
-                    param.description = selectedParam.description;
-                }//next param
+                }
+
+                db.LoadParameterList(regionParameterList);
+                this.sm(db.Messages);
+
 
                 return regionParameterList;
             }
@@ -158,11 +152,24 @@ namespace SStats.Utilities.ServiceAgent
                 if (db != null) db.Dispose();
             }
         }//end Get
-        public string GetWorkspace(string workspace, Int32 type)
+        public string GetWorkspace(Int32 type)
         {
-            dynamic resultObj = Execute(getProcessRequest(getProcessName(processType.e_shape), String.Format("-workspaceID {0} -directory {1} -toType {2}", 
-                                                                                                    workspace, ConfigurationManager.AppSettings["SSRepository"], type)));
-            return resultObj.Workspace;
+            string result = string.Empty;
+            //1= shape
+            //2=gdb
+            if (type == 1)
+            {
+                dynamic resultObj = Execute(getProcessRequest(getProcessName(processType.e_shape),
+                                        String.Format("-workspaceID {0} -directory {1} -toType {2}",
+                                        this.WorkspaceString, ConfigurationManager.AppSettings["SSRepository"], type)));
+                result = resultObj.Workspace;
+            }
+            else
+                result = Path.Combine(WorkspaceString, WorkspaceString + ".gdb");
+
+            if (!isValidWorkspace(result)) throw new BadRequestException(result + "is not valid workspace");
+            
+            return result;
         }
         public List<string> GetStateFlowStatistics(string regionCode) {
             SSXMLAgent xmlagent = null;
@@ -196,14 +203,14 @@ namespace SStats.Utilities.ServiceAgent
             return result;
         }
 
-        public List<FeatureWrapper> GetFeatures(string features, Int32 simplificationOption = 1)
+        public List<FeatureWrapper> GetFeatures(string features, Int32 crsCode, Int32 simplificationOption = 1)
         {
             List<string> requestFcodes = new List<string>();
             List<FeatureWrapper> results;
             try
             {
 
-                loadFeatures(features, simplificationOption);
+                loadFeatures(features, crsCode, simplificationOption);
 
                 if (string.IsNullOrEmpty(features)) results = this._featureResultList.Select(x => x.Value).ToList();
                 else results = this._featureResultList.Select(x => x.Value).ToList();
@@ -245,7 +252,6 @@ namespace SStats.Utilities.ServiceAgent
                 body.Add("-stabbr " + state);
                 body.Add(String.Format("-pourpoint [{0},{1}]",X,Y));
                 body.Add("-pourpointwkid " + wkid);
-                body.Add("-processSR " + wkid);
                 return string.Join(" ", body);
             }
             catch (Exception)
@@ -296,6 +302,7 @@ namespace SStats.Utilities.ServiceAgent
 
         private List<Parameter> parseParameters(JToken jobj, List<Parameter> paramList)
         {
+            Parameter selectedParam = null;
             JArray objArray = (JArray)jobj.SelectToken("Parameters");
             char[] delimiterChars = { '_' };
 
@@ -306,7 +313,11 @@ namespace SStats.Utilities.ServiceAgent
             foreach (var p in objArray)
             {
                 if ((p["code"] != null || p["value"] != null) && !String.IsNullOrEmpty(p.SelectToken("value").ToString()))
-                    paramList.FirstOrDefault(sp => string.Equals(sp.code, p.SelectToken("code").ToString(), StringComparison.OrdinalIgnoreCase)).value = (Double)p.SelectToken("value");
+                {
+                    selectedParam = paramList.FirstOrDefault(sp => string.Equals(sp.code, p.SelectToken("code").ToString(), StringComparison.OrdinalIgnoreCase));
+                    if(selectedParam !=null)    
+                        selectedParam.value = (Double)p.SelectToken("value");
+                }//end if                    
             }//next p
 
             return paramList;
@@ -339,7 +350,7 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Feature Helper Methods
-        private string loadFeatures(string feature, Int32 simplificationOption)
+        private string loadFeatures(string feature, Int32 crsCode, Int32 simplificationOption)
         {
             JObject result = null;
             List<string> requestFCodes;
@@ -349,7 +360,7 @@ namespace SStats.Utilities.ServiceAgent
                 requestFCodes = parse(feature);
                 if(string.IsNullOrEmpty(this.WorkspaceString)) throw new Exception("workspace string must not be null");
                 
-                result = Execute(getProcessRequest(getProcessName(processType.e_features), getBody(requestFCodes, simplificationOption))) as JObject;
+                result = Execute(getProcessRequest(getProcessName(processType.e_features), getBody(requestFCodes, crsCode, simplificationOption))) as JObject;
                 if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
                 return parseFeatures(result);
 
@@ -360,7 +371,7 @@ namespace SStats.Utilities.ServiceAgent
             }
 
         }
-        private string getBody(List<string> fList, int simplificationOption)
+        private string getBody(List<string> fList,int crsCode, int simplificationOption)
         {
             List<string> body = new List<string>();
             try
@@ -369,6 +380,7 @@ namespace SStats.Utilities.ServiceAgent
                     body.Add("-includefeatures "+ string.Join(";", fList.Select(f => f).ToList()));
                 body.Add("-workspaceID " + this.WorkspaceString);
                 body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-outputcrs " + crsCode);
                 body.Add("-simplification " + simplificationOption);
 
 
@@ -421,6 +433,19 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Other Helper Methods
+        private Boolean isValidWorkspace(string workspaceid)
+        {
+            try
+            {
+                string dir = ConfigurationManager.AppSettings["SSRepository"];
+                if (!Directory.Exists(Path.Combine(dir, workspaceid))) return false;
+                return true;
+            }
+            catch (Exception)
+            {
+                return false;
+            }
+        }
         private Boolean isFeature(JToken jobj, out List<FeatureBase> Feature, out int wkid, out string gtype, out List<Field> fields)
         {
             JArray obj = null;
@@ -500,7 +525,7 @@ namespace SStats.Utilities.ServiceAgent
             try
             {
                 var error = obj.error;
-                if (error == null) throw new Exception();
+                if (error == null) return false;
                 msg = error.message;
                 return true;
             }

@@ -32,6 +32,7 @@ using System.Runtime.InteropServices;
 
 using SStats.Resources;
 using SStats.Utilities.ServiceAgent;
+using WiM.Exceptions;
 
 namespace SStats.Handlers
 {
@@ -47,7 +48,7 @@ namespace SStats.Handlers
             SSServiceAgent agent = null;
             try
             {
-                
+                if (espg < 0) throw new BadRequestException("spatial ref invalid");
                 agent = new SSServiceAgent();
                 SSresults = new Watershed();
                 //1 = full, 2 = simplified
@@ -65,7 +66,7 @@ namespace SStats.Handlers
                 if (includeMethod(ref featureList) && !String.IsNullOrEmpty(agent.WorkspaceString))
                 {
                     if (string.IsNullOrEmpty(featureList)) featureList = "globalwatershedpoint;globalwatershed";
-                    SSresults.FeatureList = agent.GetFeatures(featureList,simplifyID);
+                    SSresults.FeatureList = agent.GetFeatures(featureList,espg,simplifyID);
                 }//end if
                                 
                 return new OperationResult.OK { ResponseResource = SSresults };
@@ -83,21 +84,23 @@ namespace SStats.Handlers
         }//end Get
 
         [HttpOperation(HttpMethod.GET, ForUriName = "GetWatershedFromWorkspaceID")]
-        public OperationResult GetWatershedFromWorkspaceID(String regioncode, string workspaceID, [Optional] String simplificationOption,
+        public OperationResult GetWatershedFromWorkspaceID(String regioncode, string workspaceID, Int32 espg, [Optional] String simplificationOption,
                                                            [Optional] String parameterList, [Optional] String flowtypeList,
                                                            [Optional] String featureList)
         {
             Watershed SSresults = null;
             SSServiceAgent agent = null;
             try
-            {        
-                if (string.IsNullOrEmpty(workspaceID)||string.IsNullOrEmpty(regioncode)) return new OperationResult.BadRequest { ResponseResource = "workspace and/or state cannot be null" };
+            {
+                if (string.IsNullOrEmpty(workspaceID) || string.IsNullOrEmpty(regioncode)) return new OperationResult.BadRequest { ResponseResource = "workspace and/or state cannot be null" };
+                if (espg < 200) throw new BadRequestException("spatial ref invalid");
+
                 //1 = full, 2 = simplified
                 Int32 simplifyID = includeMethod(ref simplificationOption) ? 2 : 1;
 
                 agent = new SSServiceAgent(workspaceID);
                 SSresults = new Watershed();
-                
+
                 SSresults.workspaceID = agent.WorkspaceString;
 
                 if (includeMethod(ref parameterList))
@@ -106,10 +109,14 @@ namespace SStats.Handlers
                 if (includeMethod(ref featureList))
                 {
                     if (string.IsNullOrEmpty(featureList)) featureList = "globalwatershedpoint;globalwatershed";
-                    SSresults.FeatureList = agent.GetFeatures(featureList, simplifyID);
+                    SSresults.FeatureList = agent.GetFeatures(featureList, espg, simplifyID);
                 }//end if
 
                 return new OperationResult.OK { ResponseResource = SSresults };
+            }
+            catch (BadRequestException ex) 
+            {
+                return new OperationResult.BadRequest { ResponseResource = ex.Message.ToString() };
             }
             catch (Exception ex)
             {

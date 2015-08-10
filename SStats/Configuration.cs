@@ -19,6 +19,10 @@
 //              https://github.com/openrasta/openrasta/wiki/Configuration
 //
 //     
+//              for errors
+//              https://www.danielirvine.com/blog/2011/06/09/beautiful-errors-with-openrasta/
+//              http://stackoverflow.com/questions/9928135/in-openrasta-how-should-you-handle-codec-errors-or-exceptions
+//              http://lookonmyworks.co.uk/category/openrasta/
 #region Comments
 // 02.21.14 - JKN - Created
 #endregion
@@ -63,6 +67,9 @@ namespace SStats
                 addFeatureResource();
                 addParameterGroupResource();
 
+                ResourceSpace.Has.ResourcesOfType<string>()
+                .WithoutUri.AsJsonDataContract();
+
                 //the capabilites section if for vs 3 and needs to be removed -jkn
                 ResourceSpace.Has.ResourcesOfType<List<Capabilities>>()
                 .AtUri("/capabilities?rcode={regioncode}&type={type}")
@@ -77,7 +84,7 @@ namespace SStats
         private void addWatershedResource(){
         ResourceSpace.Has.ResourcesOfType<Watershed>()
                 .AtUri("/watershed?rcode={regioncode}&xlocation={X}&ylocation={Y}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}")
-                .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}").Named("GetWatershedFromWorkspaceID")
+                .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}").Named("GetWatershedFromWorkspaceID")
                 .HandledBy<WatershedHandler>()
                 .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
                 .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
@@ -111,7 +118,7 @@ namespace SStats
         }
         private void addFeatureResource() {
             ResourceSpace.Has.ResourcesOfType<Features>()
-             .AtUri("/features?workspaceID={workspaceID}&includefeatures={featureList}&simplify={simplificationOption}")
+             .AtUri("/features?workspaceID={workspaceID}&crs={espg}&includefeatures={featureList}&simplify={simplificationOption}")
              .HandledBy<FeatureHandler>()
              .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
              .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")

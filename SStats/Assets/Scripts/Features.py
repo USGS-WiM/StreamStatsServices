@@ -44,9 +44,10 @@ class Features(object):
 
         self.WorkspaceID = workspaceid
         self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
+        self.__TempDirectory__ = os.path.join(self.__MainDirectory__,"Temp")
 
         #set up logging
-        logdir = os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'Feature.log')
+        logdir = os.path.join(self.__TempDirectory__, 'Feature.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
 
          #Test if workspace exists before run   
@@ -63,7 +64,7 @@ class Features(object):
         
     #region Methods   
    
-    def GetFeatures(self, featurelist='', simplificationType=1):
+    def GetFeatures(self, featurelist='', crs = 4326, simplificationType=1):
         
         try:
             if featurelist == '':
@@ -76,7 +77,7 @@ class Features(object):
                     if f.lower() in self.FeaturesList:
                         self.Features.append({
                                                 "name" : f,                                  
-                                                "feature": self.__simplify__(f, simplificationType)
+                                                "feature": self.__simplify__(f,crs, simplificationType)
                                               })
         except:
             tb = traceback.format_exc()
@@ -108,21 +109,57 @@ class Features(object):
         except:
             tb = traceback.format_exc()
             self.__sm__("Failed to serialize " + tb,"ERROR")
+    
+    def __toProjection__(self, inFeature, toCRS):
+        sr = None  
+        fromCRS = None
+        desc = None  
+        projectedFC = None        
+        try:
+            sr = arcpy.SpatialReference(int(toCRS))
+            desc = arcpy.Describe(inFeature)
+            fromCRS = desc.spatialReference.factoryCode
+            projectFC = os.path.join(self.__TempDirectory__, desc.name +".shp")
+            
+            if arcpy.Exists(projectFC):
+                self.__sm__("deleting old temp file")
+                arcpy.Delete_management(projectFC)
+            
+            if sr.factoryCode == desc.spatialReference.factoryCode:
+                return None
+            self.__sm__("Projecting from: "+ str(fromCRS) + " To: " + str(toCRS))
+            return arcpy.Project_management(inFeature,projectFC,sr)
+        except:
+            tb = traceback.format_exc()                  
+            self.__sm__("Error Reprojecting: " + tb +" "+ arcpy.GetMessages(),"ERROR")
+            return None
+        finally:
+            sr = None
 
-    def __simplify__(self, fc, simplificationType):
+    def __simplify__(self, fc, crs, simplificationType):
         tolerance = 10
         simplifiedfc = None
+        reprojectedFC = None
+        outputFC = None                        
         try:
             desc = arcpy.Describe(fc)
             type = desc.shapeType
+            reprojectedFC = self.__toProjection__(fc,crs)
+
+            if reprojectedFC != None:
+                outputFC = reprojectedFC
+            else:
+                outputFC = fc
+
             if simplificationType == 1 or type == "Point" : 
-                 return self.__ToJSON__(fc)
+                 return self.__ToJSON__(outputFC)
         
-            numVerts = self.__getVerticesCount__(fc)
-            self.__sm__("Number of vertices: " + str(numVerts))            
+            numVerts = self.__getVerticesCount__(outputFC)
+            self.__sm__("Number of vertices: " + str(numVerts))
+                        
             if numVerts < 100:      
                 #no need to simplify
-                return self.__ToJSON__(fc)
+                return self.__ToJSON__(outputFC)
             elif numVerts < 1000:
                 tolerance = 10
             elif numVerts < 2000:
@@ -133,9 +170,9 @@ class Features(object):
             self.__sm__("Simplifying feature with tolerance: "+str(tolerance))
 
             if type == 'Polygon':
-                simplifiedfc = CA.SimplifyPolygon(fc, "simplified", "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
+                simplifiedfc = CA.SimplifyPolygon(outputFC,  arcpy.Describe(outputFC).path+"simplified", "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
             else:
-                simplifiedfc = CA.SimplifyLine(fc, "simplified", "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
+                simplifiedfc = CA.SimplifyLine(outputFC, arcpy.Describe(outputFC).path+"simplified", "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
                 
             self.__sm__(arcpy.GetMessages()) 
             return self.__ToJSON__(simplifiedfc)
@@ -146,6 +183,8 @@ class Features(object):
 
             return self.__ToJSON__(fc)
         finally:
+            outputFC = None
+            if reprojectedFC != None: arcpy.Delete_management(reprojectedFC)            
             if simplifiedfc != None: arcpy.Delete_management(simplifiedfc)
         
     def __getVerticesCount__(self, polyFC):
@@ -161,7 +200,6 @@ class Features(object):
         except:
             return -1
 
-    
     def __sm__(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
@@ -178,10 +216,11 @@ class FeaturesWrapper(object):
     def __init__(self):
         try:
             parser = argparse.ArgumentParser()
-            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150710155048488000")
+            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150807082417693000")
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")              
             parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"globalwatershed")
-            parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)             
+            parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)
+            parser.add_argument("-outputcrs", help="specifies the output projection to use",type=int, default=4326)             
             args = parser.parse_args()
 
             simplification = args.simplification
@@ -190,7 +229,7 @@ class FeaturesWrapper(object):
 
             ssfeature = Features(args.directory, args.workspaceID)
     
-            ssfeature.GetFeatures(args.includefeatures, simplification)
+            ssfeature.GetFeatures(args.includefeatures, args.outputcrs, simplification)
             
             Results = {
                        "Workspace": ssfeature.WorkspaceID,
