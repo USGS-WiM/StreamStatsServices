@@ -29,6 +29,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Web;
 using System.Runtime.InteropServices;
+using WiM.Exceptions;
 
 using SStats.Resources;
 using SStats.Utilities.ServiceAgent;
@@ -64,12 +65,15 @@ namespace SStats.Handlers
             Parameters wp = new Parameters();
             try
             {
-                agent = new SSServiceAgent();
-                agent.WorkspaceString = workspaceID;
+                agent = new SSServiceAgent(workspaceID);
                 wp.ParameterList = agent.GetParameters(regioncode, parameterList);
                 wp.Messages = agent.Messages;                          
 
                 return new OperationResult.OK { ResponseResource = wp };
+            }
+            catch (BadRequestException ex)
+            {
+                return new OperationResult.BadRequest { ResponseResource = ex.Message.ToString() };
             }
             catch (Exception ex)
             {

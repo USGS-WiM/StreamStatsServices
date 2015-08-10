@@ -36,23 +36,21 @@ using WiM.Resources.Spatial;
 using WiM.Exceptions;
 namespace SStats.Handlers
 {
-    public class FeatureHandler
+    public class NavigationHandler
     {
         [HttpOperation(HttpMethod.GET)]
-        public OperationResult Get(string workspaceID, [Optional]Int32 espg, [Optional] string featureList, [Optional] String simplificationOption)
+        public OperationResult Get(string workspaceID, [Optional] string featureList, [Optional] String simplificationOption)
         {
             List<FeatureWrapper> result = null;
             SSServiceAgent agent = null;
             try
             {
-                if (espg <= 0) espg = -1;
-
                 if (string.IsNullOrEmpty(featureList)) featureList = string.Empty;
                   //1 = full, 2 = simplified
                 Int32 simplifyID = includeMethod(ref simplificationOption) ? 2 : 1;
 
                 agent = new SSServiceAgent(workspaceID);
-                result = agent.GetFeatures(featureList, espg, simplifyID);
+                result = agent.GetFeatures(featureList, simplifyID);
 
                 
 
