@@ -53,7 +53,7 @@ class BasinParameters(object):
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
          
         #Test if workspace exists before run   
-        if(not self.__workspaceExists__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):
+        if(not self.__workspaceValid__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):
             return
 
         self.__run__(pList)  
@@ -118,13 +118,15 @@ class BasinParameters(object):
         os.makedirs(subDirectory);
 
         return subDirectory
-    def __workspaceExists__(self, workspace):
-        if arcpy.Exists(workspace):
-            self.__sm__(workspace + " exists")
-            return True
-        else:
-            self.__sm__(workspace + " does not exists")
+    def __workspaceValid__(self, workspace):
+        if not arcpy.Exists(workspace):
+            self.__sm__("Workspace " + workspace + " does not exist")
             return False
+        if not arcpy.TestSchemaLock(workspace):
+            self.__sm__("Workspace " + workspace + " has a schema lock","AHMSG")
+            return False
+        self.__sm__("Workspace " + workspace + " is valid")
+        return True
     def __setScratchWorkspace__(self, directory):
         if (arcpy.Exists(os.path.join(directory,"scratch.gdb"))):
             arcpy.Delete_management(os.path.join(directory,"scratch.gdb"))
