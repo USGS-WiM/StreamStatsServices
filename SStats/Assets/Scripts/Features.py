@@ -172,7 +172,7 @@ class Features(object):
             if type == 'Polygon':
                 simplifiedfc = CA.SimplifyPolygon(outputFC,  arcpy.Describe(outputFC).path+"simplified", "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
             else:
-                simplifiedfc = CA.SimplifyLine(outputFC, arcpy.Describe(outputFC).path+"simplified", "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
+                simplifiedfc = CA.SimplifyLine(outputFC, arcpy.Describe(outputFC).path+"simplified", "POINT_REMOVE", str(tolerance) +" Meters", "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
                 
             self.__sm__(arcpy.GetMessages()) 
             return self.__ToJSON__(simplifiedfc)
@@ -216,9 +216,9 @@ class FeaturesWrapper(object):
     def __init__(self):
         try:
             parser = argparse.ArgumentParser()
-            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150807082417693000")
+            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150824142145687000")
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")              
-            parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"globalwatershed")
+            parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"")
             parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)
             parser.add_argument("-outputcrs", help="specifies the output projection to use",type=int, default=4326)             
             args = parser.parse_args()
