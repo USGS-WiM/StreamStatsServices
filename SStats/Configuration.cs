@@ -58,6 +58,7 @@ namespace SStats
                 ResourceSpace.Uses.UriDecorator<ContentTypeExtensionUriDecorator>();
                 ResourceSpace.Uses.PipelineContributor<ErrorCheckingContributor>();
                 ResourceSpace.Uses.PipelineContributor<CrossDomainPipelineContributor>();
+                ResourceSpace.Uses.PipelineContributor<MessagePipelineContributor>();
 
                 //watershed
                 addWatershedResource();
