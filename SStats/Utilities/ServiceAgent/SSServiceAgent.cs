@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using WiM.Utilities.ServiceAgent;
 using WiM.Resources;
 using WiM.Resources.Spatial;
+using WiM.Utilities.Storage;
 using WiM.Exceptions;
 
 using SStats.Resources;
@@ -26,6 +27,7 @@ namespace SStats.Utilities.ServiceAgent
         private IDictionary<string, FeatureWrapper> _featureResultList = new Dictionary<string, FeatureWrapper>(StringComparer.InvariantCultureIgnoreCase);
 
         public string WorkspaceString { get; private set; }
+        private string RepositoryDirectory { get; set; }
         private List<string> _message = new List<string>();
         public List<string> Messages
         {
@@ -39,13 +41,16 @@ namespace SStats.Utilities.ServiceAgent
             : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
             HasGeometry = false;
+            RepositoryDirectory = getRepositoryPath();
         }
         public SSServiceAgent(string workspaceID)
             : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
-            if (!isValidWorkspace(workspaceID)) throw new BadRequestException(workspaceID + " Is not valid"); 
             WorkspaceString = workspaceID;
             HasGeometry = false;
+            RepositoryDirectory = getRepositoryPath();
+            if (!isWorkspaceValid(RepositoryDirectory)) throw new BadRequestException(workspaceID + " Is not valid"); 
+            
         }
         #endregion
 
@@ -152,7 +157,7 @@ namespace SStats.Utilities.ServiceAgent
                 if (db != null) db.Dispose();
             }
         }//end Get
-        public string GetWorkspace(Int32 type)
+        public Stream GetFileItem(Int32 type)
         {
             string result = string.Empty;
             //1= shape
@@ -161,15 +166,15 @@ namespace SStats.Utilities.ServiceAgent
             {
                 dynamic resultObj = Execute(getProcessRequest(getProcessName(processType.e_shape),
                                         String.Format("-workspaceID {0} -directory {1} -toType {2}",
-                                        this.WorkspaceString, ConfigurationManager.AppSettings["SSRepository"], type)));
+                                        this.WorkspaceString, RepositoryDirectory, type)));
                 result = resultObj.Workspace;
             }
             else
                 result = Path.Combine(WorkspaceString, WorkspaceString + ".gdb");
 
-            if (!isValidWorkspace(result)) throw new BadRequestException(result + "is not valid workspace");
-            
-            return result;
+
+            Storage aStorage = new Storage(this.RepositoryDirectory);
+            return aStorage.GetZipFile(result);
         }
         public List<string> GetStateFlowStatistics(string regionCode) {
             SSXMLAgent xmlagent = null;
@@ -202,7 +207,6 @@ namespace SStats.Utilities.ServiceAgent
 
             return result;
         }
-
         public List<FeatureWrapper> GetFeatures(string features, Int32 crsCode, Int32 simplificationOption = 1)
         {
             List<string> requestFcodes = new List<string>();
@@ -248,7 +252,7 @@ namespace SStats.Utilities.ServiceAgent
             List<string> body = new List<string>();
             try
             {
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
                 body.Add("-stabbr " + state);
                 body.Add(String.Format("-pourpoint [{0},{1}]",X,Y));
                 body.Add("-pourpointwkid " + wkid);
@@ -289,7 +293,7 @@ namespace SStats.Utilities.ServiceAgent
                 body.Add("-stabbr " + state);
                 body.Add("-parameters " + string.Join(";", bCharList.Select(p => p.code).ToList()));
                 body.Add("-workspaceID " + this.WorkspaceString);
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
 
 
                 return string.Join(" ", body);
@@ -338,7 +342,7 @@ namespace SStats.Utilities.ServiceAgent
                     // double quotes around flow type to account for spaces"
                     body.Add("-flowtype " + '"'+flowtype+'"');
                 body.Add("-workspaceID " + this.WorkspaceString);
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
 
                 return string.Join(" ", body);
             }
@@ -379,7 +383,7 @@ namespace SStats.Utilities.ServiceAgent
                 if(fList.Count > 0)
                     body.Add("-includefeatures "+ string.Join(";", fList.Select(f => f).ToList()));
                 body.Add("-workspaceID " + this.WorkspaceString);
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
                 body.Add("-outputcrs " + crsCode);
                 body.Add("-simplification " + simplificationOption);
 
@@ -433,12 +437,39 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Other Helper Methods
-        private Boolean isValidWorkspace(string workspaceid)
+        protected string getRepositoryPath()
+        {
+            string selectedPath = string.Empty;
+            string uncPaths = ConfigurationManager.AppSettings["UNCDrives"];
+            string repository = ConfigurationManager.AppSettings["SSRepository"];
+            try
+            {
+                //is there a workspaceID
+                bool isWorkspace = string.IsNullOrEmpty(this.WorkspaceString);
+
+                foreach (string dir in uncPaths.Split(','))
+                {
+                    selectedPath = System.IO.Path.Combine(dir, repository);
+                    if (!System.IO.Directory.Exists(selectedPath)) 
+                        continue;
+                    else if (string.IsNullOrEmpty(this.WorkspaceString) || System.IO.Directory.Exists(System.IO.Path.Combine(selectedPath, WorkspaceString)))
+                    {
+                        sm("selected path: " + selectedPath);
+                        return selectedPath;
+                    }
+                }//next dir
+                throw new Exception("Directory not found");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error finding directory " + ex.Message);
+            }
+        }
+        private Boolean isWorkspaceValid(string repository)
         {
             try
             {
-                string dir = ConfigurationManager.AppSettings["SSRepository"];
-                if (!Directory.Exists(Path.Combine(dir, workspaceid))) return false;
+                if (!Directory.Exists(Path.Combine(repository, this.WorkspaceString))) return false;
                 return true;
             }
             catch (Exception)

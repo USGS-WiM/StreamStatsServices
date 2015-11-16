@@ -49,6 +49,14 @@
       <HintPath>..\packages\Newtonsoft.Json.7.0.1-beta3\lib\net45\Newtonsoft.Json.dll</HintPath>
       <Private>True</Private>
     </Reference>
+    <Reference Include="OpenRasta, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\openrasta-core.2.5.59\lib\net40\OpenRasta.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
+    <Reference Include="OpenRasta.Hosting.AspNet, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\openrasta-hosting-aspnet.2.5.25\lib\net40\OpenRasta.Hosting.AspNet.dll</HintPath>
+      <Private>True</Private>
+    </Reference>
     <Reference Include="RestSharp, Version=105.1.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\RestSharp.105.1.0\lib\net45\RestSharp.dll</HintPath>
       <Private>True</Private>
@@ -89,7 +97,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Default.html" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
@@ -116,14 +123,6 @@
     <Compile Include="Utilities\ServiceAgent\SSXMLAgent.cs" />
   </ItemGroup>
   <ItemGroup>
-    <ProjectReference Include="..\..\..\openrasta-core\src\OpenRasta\OpenRasta.csproj">
-      <Project>{3d251617-2581-4d9c-a639-5cfb0bb09420}</Project>
-      <Name>OpenRasta</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\..\..\openrasta-hosting-aspnet\src\OpenRasta.Hosting.AspNet\OpenRasta.Hosting.AspNet.csproj">
-      <Project>{288a707d-78b1-464f-87f2-63d6652c3bc8}</Project>
-      <Name>OpenRasta.Hosting.AspNet</Name>
-    </ProjectReference>
     <ProjectReference Include="..\..\..\WiMGitHub\WiMServices\WiMServices\WiMServices.csproj">
       <Project>{3cdb4ec5-0f03-4528-b644-f8bb922b4b9e}</Project>
       <Name>WiMServices</Name>
