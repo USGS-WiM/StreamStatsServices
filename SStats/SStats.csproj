@@ -97,7 +97,6 @@
     </None>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Default.html" />
     <Content Include="Web.config">
       <SubType>Designer</SubType>
     </Content>
