@@ -43,13 +43,15 @@ class BasinParameters(object):
     #region Constructor
     def __init__(self, regionID, directory, workspaceID, pList): 
         self.RegionID = regionID
+        self.__xmlPath__ = r"D:\ss_apps\XML" 
         self.WorkspaceID = workspaceID
         self.isComplete = False
         self.Message =""    
         self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
+        self.__TempLocation__ = os.path.join(self.__MainDirectory__, "Temp")
         self.ParameterList = None
 
-        logdir = os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'parameter.log')
+        logdir = os.path.join(self.__TempLocation__, 'parameter.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
          
         #Test if workspace exists before run   
@@ -64,6 +66,7 @@ class BasinParameters(object):
     def __run__(self, parameters):
         workspace = ''
         plist = None
+        xmlfile =''
         try:
             # Set overwrite option
             arcpy.env.overwriteOutput = True
@@ -72,13 +75,15 @@ class BasinParameters(object):
             workspace = os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers")
             self.__sm__('workspace set: '+self.WorkspaceID)
             outputFile = os.path.join(self.__MainDirectory__, "Temp","parameterFile{0}")
+
+            xmlfile = self.__SSXMLPath__("StreamStats{0}.xml".format(self.RegionID), '#',self.__TempLocation__)
            
             arcpy.CheckOutExtension("Spatial")
             self.__sm__("Stated calc params")
             ArcHydroTools.StreamstatsGlobalParametersServer(os.path.join(workspace,"GlobalWatershed"), 
                                                             os.path.join(workspace,"GlobalWatershedPoint"), 
                                                             parameters, outputFile.format(".xml"), outputFile.format(".htm"), 
-                                                            self.__getXMLPath__(),"", self.WorkspaceID )
+                                                            xmlfile,"", self.WorkspaceID )
 
             self.__sm__(arcpy.GetMessages(),'AHMSG')
             arcpy.CheckInExtension("Spatial")
@@ -132,14 +137,40 @@ class BasinParameters(object):
             arcpy.Delete_management(os.path.join(directory,"scratch.gdb"))
         arcpy.CreateFileGDB_management(directory,'scratch.gdb')
         return os.path.join(directory,"scratch.gdb")  
-    def __getXMLPath__(self):
-        #check tempdir
-        tempDir = os.path.join(self.__MainDirectory__,"Temp")
-        if os.path.exists(os.path.join(tempDir, "StreamStats{0}.xml".format(self.RegionID))):
-            return os.path.join(tempDir, "StreamStats{0}.xml".format(self.RegionID))
-        else:
+    def __SSXMLPath__(self, xmlFileName, copyToDirectory="#", newTempWorkspace = "#"):
+        file = None
+        xmlFile =''
+        try:
+            #return self.__SSXMLPath__("StreamStats{0}.xml".format(self.RegionID),'#',self.__TempLocation__)
+            #move the file to tempDirectory
+            if os.path.exists(os.path.join(self.__TempLocation__, xmlFileName)):
+                xmlFile = os.path.join(self.__TempLocation__, xmlFileName)
+            else:
             #default location
-            return r"D:\ss_apps\XML\StreamStats{0}.xml".format(self.RegionID)
+                xmlFile = os.path.join(self.__xmlPath__,xmlFileName)
+
+            
+            if copyToDirectory != "#":
+                shutil.copy(xmlFile, copyToDirectory)
+                xmlFile = os.path.join(copyToDirectory,xmlFileName)
+
+            if newTempWorkspace == "#":
+                return xmlFile
+
+            #update tempworkspace
+            xmlDoc = xml.dom.minidom.parse(xmlFile)
+            xmlDoc.getElementsByTagName('TempLocation')[0].firstChild.data = newTempWorkspace
+            file = open(xmlFile,"wb")
+            xmlDoc.writexml(file)
+
+            return xmlFile
+        except:
+             tb = traceback.format_exc()
+             self.__sm__(tb,"ERROR")
+        finally:
+            if file != None and not file.closed: 
+                file.close 
+                file = None
     def __sm__(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
@@ -155,10 +186,10 @@ class BasinParametersWrapper(object):
         def __init__(self):
             try:
                 parser = argparse.ArgumentParser()
-                parser.add_argument("-stabbr", help="specifies the state abbreviation", type=str, default="IA")
-                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150121094649937000")
+                parser.add_argument("-stabbr", help="specifies the state abbreviation", type=str, default="NY")
+                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="NY20151116065555747000")
                 parser.add_argument("-parameters", help="specifies the ';' separated list of parameters to be computed", type=str, default = "DRNAREA;KSATSSUR;I24H10Y;CCM;TAU_ANN;STREAM_VAR;PRECIP;HYSEP;RSD")
-                parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
+                parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"C:\gistemp\ClientData")
                 args = parser.parse_args()
                 
                 ssBp = BasinParameters(args.stabbr,args.directory, args.workspaceID, args.parameters)
