@@ -67,6 +67,7 @@ namespace SStats
                 addFlowStatisticResource();
                 addFeatureResource();
                 addParameterGroupResource();
+                addWaterUseResource();
 
                 ResourceSpace.Has.ResourcesOfType<string>()
                 .WithoutUri.AsJsonDataContract();
@@ -132,6 +133,19 @@ namespace SStats
                     .HandledBy<ParameterGroupHandler>()
                     .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
                     .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
+        }
+        private void addWaterUseResource() 
+        {
+            ResourceSpace.Has.ResourcesOfType<List<string>>()
+            .AtUri("/wateruse")
+            .HandledBy<WaterUseHandler>()
+            .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
+            .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
+
+            ResourceSpace.Has.ResourcesOfType<object>()
+            .AtUri("/wateruse?rcode={regioncode}&workspaceID={workspaceID}&startyear={startyear}&endyear={endyear}")
+            .HandledBy<WaterUseHandler>()
+            .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
         }
         #endregion
     }//end Configuration
