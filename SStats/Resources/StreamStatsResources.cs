@@ -120,5 +120,5 @@ namespace SStats.Resources
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
     }
-
+    
 }//end namespace
