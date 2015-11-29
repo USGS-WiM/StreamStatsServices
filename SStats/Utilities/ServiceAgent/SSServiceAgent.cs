@@ -56,7 +56,7 @@ namespace SStats.Utilities.ServiceAgent
 
         #region Methods
 
-        public void Delineate(double x, double y, int espg, String basinCode)
+        public Boolean Delineate(double x, double y, int espg, String basinCode)
         {
             JObject result = null;
             string msg;
@@ -69,11 +69,39 @@ namespace SStats.Utilities.ServiceAgent
 
                 if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
 
-                parseDelineationResult(result);
+                parseResult(result);
+                return true;
             }
             catch (Exception ex)
             {
+                sm("Error delineating " + ex.Message);
                 throw new Exception(ex.Message);
+            }
+        }
+        public Boolean EditWatershed(WatershedEditDecisionList watershedEDL, int espg)
+        {
+            List<FeatureCollectionBase> appendFeatures = null;
+            List<FeatureCollectionBase> removeFeatures = null;
+            string msg;
+            JObject result = null;
+            try
+            {
+                //verify watershed exists
+                if (!isWorkspaceValid(RepositoryDirectory)) throw new DirectoryNotFoundException("Workspace not found.");
+                //convert to esriFeatures
+                appendFeatures = parseFeatures(watershedEDL.Append, espg);
+                removeFeatures = parseFeatures(watershedEDL.Remove, espg);
+ 
+                result = Execute(getProcessRequest(getProcessName(processType.e_editwatershed), getBody(appendFeatures, removeFeatures,espg))) as JObject;
+
+                if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
+                parseResult(result);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                sm("Error editing watershed " + ex.Message);
+                return false;
             }
         }
         public List<Parameter> GetParameters(string state, string pList)
@@ -232,7 +260,7 @@ namespace SStats.Utilities.ServiceAgent
         }
         #endregion
 
-        #region Delineation Helper Methods
+        #region Watershed Helper Methods
         private Boolean validStudyCode(string code) {
             List<string> exludedBasinIDs = null;
             char[] delimiterChars = { ',' };
@@ -263,7 +291,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }//end getParameterList   
-        private void parseDelineationResult(JObject SSdelineationResult)
+        private void parseResult(JObject SSdelineationResult)
         {
             char[] delimiterChars = { '_'};
             try
@@ -281,7 +309,44 @@ namespace SStats.Utilities.ServiceAgent
                 throw new Exception("Error parsing delineation result " + ex.Message);
             }//end try
         }//end parseDelineatinResult 
-       
+
+        private string getBody(List<FeatureCollectionBase> appendList, List<FeatureCollectionBase> removeList, int wkid)
+        {
+            List<string> body = new List<string>();
+            try
+            {
+                body.Add("-workspaceID " + this.WorkspaceString);
+                body.Add("-directory " + RepositoryDirectory);
+                body.Add("-appendlist "+ JsonConvert.SerializeObject(appendList));
+                body.Add("-removelist " + JsonConvert.SerializeObject(removeList));
+                return string.Join(" ", body);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }//end getParameterList  
+        private List<FeatureCollectionBase> parseFeatures(List<dynamic> jobj, Int32 espg)
+        {
+            List<FeatureCollectionBase> featurelist = new List<FeatureCollectionBase>();
+            EsriFeatureRecordSet rset = null;
+            try
+            {
+                 
+                foreach (JToken item in jobj)
+                {
+                    String geomtype = Convert.ToString(item.SelectToken("geometry.type"));
+                    rset = new EsriFeatureRecordSet(new EsriFeature(item, geomtype), espg);
+                    featurelist.Add(rset);
+                }//next item
+
+                return featurelist;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }//end try
+        }
         #endregion
 
         #region Parameter Helper Methods
@@ -454,7 +519,7 @@ namespace SStats.Utilities.ServiceAgent
                         continue;
                     else if (string.IsNullOrEmpty(this.WorkspaceString) || System.IO.Directory.Exists(System.IO.Path.Combine(selectedPath, WorkspaceString)))
                     {
-                        sm("selected path: " + selectedPath);
+                        //sm("selected path: " + selectedPath);
                         return selectedPath;
                     }
                 }//next dir
@@ -484,9 +549,9 @@ namespace SStats.Utilities.ServiceAgent
 
             try
             {                                
-                fields = jobj["fields"] != null ? JsonConvert.DeserializeObject<List<Field>>(jobj.SelectToken("fields").ToString()) : null; 
-                obj = (JArray)jobj.SelectToken("features");
-                gtype = (string)jobj.SelectToken("geometryType");
+                fields = jobj["fields"] != null ? JsonConvert.DeserializeObject<List<Field>>(jobj.SelectToken("fields").ToString()) : null;
+                obj = (JArray)jobj.SelectToken("features") ?? (JArray)jobj.SelectToken("geometry");
+                gtype = (string)jobj.SelectToken("geometryType")??(string)jobj.SelectToken("type");
                 wkid = (int)jobj.SelectToken("spatialReference.wkid");
                 foreach (JToken item in obj)
                     Feature.Add(new EsriFeature(item, gtype));
@@ -533,6 +598,9 @@ namespace SStats.Utilities.ServiceAgent
             {
                 case processType.e_delineation:
                     uri = ConfigurationManager.AppSettings["Delineation"];
+                    break;
+                case processType.e_editwatershed:
+                    uri = ConfigurationManager.AppSettings["EditWatershed"];
                     break;
                 case processType.e_parameters:
                     uri = ConfigurationManager.AppSettings["Characteristics"];
@@ -588,7 +656,8 @@ namespace SStats.Utilities.ServiceAgent
             e_parameters,
             e_shape,
             e_flowstats,
-            e_features
+            e_features,
+            e_editwatershed
         }
 
         #endregion
