@@ -60,7 +60,6 @@ namespace SStats
                 ResourceSpace.Uses.PipelineContributor<CrossDomainPipelineContributor>();
                 ResourceSpace.Uses.PipelineContributor<MessagePipelineContributor>();
 
-                //watershed
                 addWatershedResource();
                 addParameterResource();
                 addDownloadResource();
@@ -84,13 +83,14 @@ namespace SStats
 
         #region Helper methods
         private void addWatershedResource(){
-        ResourceSpace.Has.ResourcesOfType<Watershed>()
-                .AtUri("/watershed?rcode={regioncode}&xlocation={X}&ylocation={Y}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}")
-                .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}").Named("GetWatershedFromWorkspaceID")
-                .HandledBy<WatershedHandler>()
-                .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
-                .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
-                .And.TranscodedBy<SSGeoJsonDotNetCodec>(null).ForMediaType("application/geojson;q=0.9").ForExtension("geojson");
+            ResourceSpace.Has.ResourcesOfType<Watershed>()
+                    .AtUri("/watershed?rcode={regioncode}&xlocation={X}&ylocation={Y}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}")
+                    .And.AtUri("/watershed?rcode={regioncode}&workspaceID={workspaceID}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}").Named("GetWatershedFromWorkspaceID")
+                    .And.AtUri("/watershed/edit?rcode={regioncode}&workspaceID={workspaceID}&crs={espg}&includeparameters={parameterList}&includeflowtypes={flowtypeList}&includefeatures={featureList}&simplify={simplificationOption}").Named("EditWatershed")
+                    .HandledBy<WatershedHandler>()
+                    .TranscodedBy<UTF8XmlSerializerCodec>().ForMediaType("application/xml;q=1").ForExtension("xml")
+                    .And.TranscodedBy<JsonDotNetCodec>().ForMediaType("application/json").ForExtension("json")
+                    .And.TranscodedBy<SSGeoJsonDotNetCodec>().ForMediaType("application/geojson").ForExtension("geojson");
         
         }
         private void addParameterResource() {
