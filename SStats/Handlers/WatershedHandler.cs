@@ -130,6 +130,57 @@ namespace SStats.Handlers
             }//end try
         }//end Get
 
+        [HttpOperation(HttpMethod.PUT, ForUriName = "EditWatershed")]
+        public OperationResult EditWatershed(WatershedEditDecisionList watershedEDL, String regioncode, string workspaceID, Int32 espg, [Optional] String simplificationOption,
+                                                            [Optional] String parameterList, [Optional] String flowtypeList,
+                                                            [Optional] String featureList)
+        {
+            Watershed SSresults = null;
+            SSServiceAgent agent = null;
+            try
+            {
+                if (string.IsNullOrEmpty(workspaceID) || string.IsNullOrEmpty(regioncode)) return new OperationResult.BadRequest { ResponseResource = "workspace and/or state cannot be null" };
+                if (espg < 200) throw new BadRequestException("spatial ref invalid");
+
+                //1 = full, 2 = simplified
+                Int32 simplifyID = includeMethod(ref simplificationOption) ? 2 : 1;
+
+                agent = new SSServiceAgent(workspaceID);
+
+                //edit watershed
+                if (!agent.EditWatershed(watershedEDL, espg)) throw new Exception();
+
+                SSresults = new Watershed();
+                SSresults.Messages = agent.Messages;
+                SSresults.workspaceID = agent.WorkspaceString;
+
+                if (includeMethod(ref parameterList))
+                    SSresults.Parameters = agent.GetParameters(regioncode, parameterList);
+
+                if (includeMethod(ref featureList))
+                {
+                    if (string.IsNullOrEmpty(featureList)) featureList = "globalwatershedpoint;globalwatershed";
+                    SSresults.FeatureList = agent.GetFeatures(featureList, espg, simplifyID);
+                }//end if
+
+                return new OperationResult.OK { ResponseResource = SSresults };
+            }
+            catch (BadRequestException ex)
+            {
+                return new OperationResult.BadRequest { ResponseResource = ex.Message.ToString() };
+            }
+            catch (Exception ex)
+            {
+                return new OperationResult.InternalServerError { ResponseResource = ex.Message.ToString() + " messages: "+agent.Messages };
+            }
+            finally
+            {
+                SSresults = null;
+                agent = null;
+
+            }//end try
+        }//end Get
+
         #region Helper Methods
         private Boolean includeMethod(ref string boolean)
         {
