@@ -21,7 +21,6 @@ namespace SStats.Resources
         [JsonProperty("workspaceID")]
         [XmlElement("workspaceID")]
         public string workspaceID { get; set; }
-
         [JsonProperty("featurecollection")]
         [XmlArray("featurecollection")]
         [XmlArrayItem("feature")]
@@ -36,6 +35,18 @@ namespace SStats.Resources
         [XmlArray("messages")]
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
+    }
+
+    //[XmlInclude(typeof(EsriFeature))]
+    [XmlRoot("WatershedEDL")]
+    public class WatershedEditDecisionList
+    {
+        [JsonProperty("append")]
+        [XmlElement("append")]
+        public List<dynamic> Append { get; set; }
+        [JsonProperty("remove")]
+        [XmlElement("remove")]
+        public List<dynamic> Remove { get; set; }
     }
 
     [XmlInclude(typeof(EsriFeatureRecordSet))]
@@ -120,5 +131,5 @@ namespace SStats.Resources
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
     }
-
+    
 }//end namespace
