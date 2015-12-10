@@ -80,8 +80,8 @@ namespace SStats.Utilities.ServiceAgent
         }
         public Boolean EditWatershed(WatershedEditDecisionList watershedEDL, int espg)
         {
-            List<FeatureCollectionBase> appendFeatures = null;
-            List<FeatureCollectionBase> removeFeatures = null;
+            List<GeometryBase> appendFeatures = null;
+            List<GeometryBase> removeFeatures = null;
             string msg;
             JObject result = null;
             try
@@ -310,15 +310,16 @@ namespace SStats.Utilities.ServiceAgent
             }//end try
         }//end parseDelineatinResult 
 
-        private string getBody(List<FeatureCollectionBase> appendList, List<FeatureCollectionBase> removeList, int wkid)
+        private string getBody(List<GeometryBase> appendList, List<GeometryBase> removeList, int wkid)
         {
             List<string> body = new List<string>();
             try
             {
                 body.Add("-workspaceID " + this.WorkspaceString);
                 body.Add("-directory " + RepositoryDirectory);
-                body.Add("-appendlist "+ JsonConvert.SerializeObject(appendList));
+                body.Add("-appendlist " +  JsonConvert.SerializeObject(appendList));
                 body.Add("-removelist " + JsonConvert.SerializeObject(removeList));
+                body.Add("-wkid " + wkid);
                 return string.Join(" ", body);
             }
             catch (Exception)
@@ -326,18 +327,18 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }//end getParameterList  
-        private List<FeatureCollectionBase> parseFeatures(List<dynamic> jobj, Int32 espg)
+        private List<GeometryBase> parseFeatures(List<dynamic> jobj, Int32 espg)
         {
-            List<FeatureCollectionBase> featurelist = new List<FeatureCollectionBase>();
-            EsriFeatureRecordSet rset = null;
+            List<GeometryBase> featurelist = new List<GeometryBase>();
+            EsriFeature rset = null;
             try
             {
                  
                 foreach (JToken item in jobj)
                 {
                     String geomtype = Convert.ToString(item.SelectToken("geometry.type"));
-                    rset = new EsriFeatureRecordSet(new EsriFeature(item, geomtype), espg);
-                    featurelist.Add(rset);
+                    rset = new EsriFeature(item, geomtype);
+                    featurelist.Add(rset.geometry);
                 }//next item
 
                 return featurelist;
