@@ -41,10 +41,12 @@ using WiM.Codecs.json;
 
 namespace SStats.Codecs.json
 {
-    [MediaType("application/geojson;q=0.5", "json")]
-    public class SSGeoJsonDotNetCodec : JsonDotNetCodec
+     [MediaType("application/json;q=0.5", "json")]
+     [MediaType("application/geojson;q=0.5", "geojson")]
+    public class SSGeoJsonDotNetCodec: JsonDotNetCodec
     {
-        public override void WriteTo(object entity, IHttpEntity response, string[] paramneters)
+
+        public override void WriteTo(object entity, IHttpEntity response, string[] parameters)
         {
             List<FeatureWrapper> fw = null;
             try
@@ -69,13 +71,13 @@ namespace SStats.Codecs.json
                 //reset content type to json
                 response.ContentType = MediaType.Json;
 
-                base.WriteTo(entity, response, paramneters);
+                base.WriteTo(entity, response, parameters);
                 
             }
             catch (Exception ex)
             {
 
-                base.WriteTo(entity, response, paramneters);
+                base.WriteTo(entity, response, parameters);
             }
                         
         }

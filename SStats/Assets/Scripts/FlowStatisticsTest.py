@@ -156,8 +156,8 @@ class FlowStatisticsWrapper(object):
         def __init__(self):
             try:
                 parser = argparse.ArgumentParser()
-                parser.add_argument("-stabbr", help="specifies the abbr state name to perform delineation", type=str, default="IA")
-                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150708084648846000")
+                parser.add_argument("-stabbr", help="specifies the abbr state name to perform delineation", type=str, default="AZ")
+                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="AZ20151119090729003000")
                 parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
                 parser.add_argument("-flowtype", help="specifies the ';' separated list of flow types to computed", type=str, default = r"PeakFlows;LowFlows")
                 args = parser.parse_args()
