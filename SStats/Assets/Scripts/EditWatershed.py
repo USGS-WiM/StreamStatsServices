@@ -53,7 +53,7 @@ class EditWatershed(object):
         self.__MainDirectory__ = os.path.join(directory,workspaceid)
 
         self.WorkspaceID = regionID + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')
-        self.__WorkspaceDirectory__ = self.__getDirectory__(os.path.join(directory, self.WorkspaceID))
+        self.__WorkspaceDirectory__ = self.__getDirectory__(os.path.join(directory, self.WorkspaceID),True)
 
         self.__TempDirectory__ = os.path.join(self.__WorkspaceDirectory__, "Temp")
 
@@ -67,6 +67,7 @@ class EditWatershed(object):
             return
         
         self.GlobalWatershed = os.path.join(os.path.join(self.__MainDirectory__, workspaceid+".gdb","Layers","GlobalWatershed"))
+        self.GlobalWatershedPoint = os.path.join(os.path.join(self.__MainDirectory__, workspaceid+".gdb","Layers","GlobalWatershedPoint"))
         
         if(arcpy.Exists(self.GlobalWatershed)):  
             sr = arcpy.Describe(os.path.join(self.__MainDirectory__, workspaceid+".gdb","Layers")).spatialReference    
@@ -78,34 +79,88 @@ class EditWatershed(object):
     #endregion   
         
     #region Methods   
-   
-    def EditWatershed(self, featurelist, method = 'append', espg = 4326):
-        list = []
-        geometries = "in_memory\\lstHSUnionGeom"
-        merged = "in_memory\\mergedFeature"
+    def Execute(self, add, remove, espg):
+        appendlist = None
+        removelist = None
+        outname =""
+        appendedFeature = self.GlobalWatershed
+        resultgdb = os.path.join(self.__WorkspaceDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
         try:
-            for jobj in featurelist:
-                list.append(self.__getPolygon__(jobj,espg))
-            
-            arcpy.Union_analysis(list,geometries)
-           
-            if(method =="append"):
-                arcpy.Merge_management([self.GlobalWatershed, geometries],merged)
-                arcpy.Dissolve_management(merged, os.path.join(self.__WorkspaceDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershed"))   
-            else:
-                var = bla
-                arcpy.Erase_analysis(os.path.join(self.__WorkspaceDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershed"), list,os.path.join(self.__WorkspaceDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershederase"))      
+            self.__sm__("Executing")
+            appendlist = self.__jsonToPolygonArray__(add, espg)
+            removelist = self.__jsonToPolygonArray__(remove,espg)
    
+            if(len(appendlist)>0): 
+                if(len(removelist)<1):outname = resultgdb    
+                appendedFeature = self.__editWatershed__(appendlist,self.GlobalWatershed,'append',outname)
+            if(len(removelist)>0):
+                self.__editWatershed__(removelist, appendedFeature,'remove', resultgdb )
+   
+            self.__addFields__(resultgdb, arcpy.ListFields(self.GlobalWatershed))  
+            
+            #copy pourpoint over
+            arcpy.Copy_management(self.GlobalWatershedPoint, os.path.join(self.__WorkspaceDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershedPoint"))         
+            self.__sm__("finished")
         except:
             tb = traceback.format_exc()
             self.__sm__("Failed to include feature " + tb,"ERROR") 
         finally:
-            if(geometries != None): arcpy.Delete_management(geometries)
-            if(merged != None): arcpy.Delete_management(merged)
-   
+            appendlist = None
+            removelist = None
+            appendedFeature = None
+            outname = None
+            
     #endregion  
       
     #region Helper Methods
+    def __addFields__(self, feature, fieldList):
+        # field.name , field.type , field.precision , field.scale, field.length, field.aliasName , field.isNullable , field.required
+        try:
+            self.__sm__("updating fields")
+            includeList = list(set([f.name for f in fieldList])-set([f.name for f in arcpy.ListFields(feature)]))
+            rows = arcpy.da.SearchCursor(self.GlobalWatershed,includeList)
+            for row in rows:
+                for field in fieldList:
+                    if(field.name in includeList):
+                        arcpy.AddField_management(feature, field.name , field.type , field.precision , field.scale, field.length, field.aliasName , field.isNullable , field.required)
+                        val = row[includeList.index(field.name)]
+                        if(val):                            
+                            arcpy.CalculateField_management(feature,field.name,'"'+str(val)+'"',"PYTHON")
+                break
+        except:
+            tb = traceback.format_exc()
+            self.__sm__("Failed to include fields " + tb,"ERROR") 
+    def __fieldExist__(self, featureclass, fieldname):
+        fieldList = arcpy.ListFields(featureclass, fieldname)
+
+        fieldCount = len(fieldList)
+
+        if (fieldCount == 1):
+            return True
+        else:
+            return False
+    def __editWatershed__(self, featurelist, infeature, method = 'append', out = ""):
+
+        geometries = "in_memory\\lstHSUnionGeom"
+        merged = "in_memory\\mergedFeature"
+        try:     
+            self.__sm__(method+"ing "+ "changes")
+            if(out ==""): out = "in_memory\\"+ method      
+            arcpy.Union_analysis(featurelist,geometries)
+           
+            if(method =="append"):
+                arcpy.Merge_management([infeature, geometries],merged) 
+                return arcpy.Dissolve_management(merged, out)   
+            else:
+                return arcpy.Erase_analysis(infeature, featurelist,out)      
+   
+        except:
+            tb = traceback.format_exc()
+            self.__sm__("Failed to include feature " + tb,"ERROR") 
+            raise Exception(tb)
+        finally:
+            if(geometries != None): arcpy.Delete_management(geometries)
+            if(merged != None): arcpy.Delete_management(merged)
     def __getDirectory__(self, subDirectory, makeTemp = True, template=None):
         try:
             if os.path.exists(subDirectory): 
@@ -121,36 +176,13 @@ class EditWatershed(object):
         except:
             x = arcpy.GetMessages()
             return subDirectory
-
+    def __jsonToPolygonArray__(self, jsonlist, espg):
+        list = []
+        for jobj in jsonlist:
+                list.append(self.__getPolygon__(jobj,espg))
+        return list
     def __workspaceExists__(self, workspace):
          return arcpy.Exists(workspace)      
-         
-    def __toProjection__(self, inFeature, toCRS):
-        sr = None  
-        fromCRS = None
-        desc = None  
-        projectedFC = None        
-        try:
-            sr = arcpy.SpatialReference(int(toCRS))
-            desc = arcpy.Describe(inFeature)
-            fromCRS = desc.spatialReference.factoryCode
-            projectFC = os.path.join(self.__TempDirectory__, desc.name +".shp")
-            
-            if arcpy.Exists(projectFC):
-                self.__sm__("deleting old temp file")
-                arcpy.Delete_management(projectFC)
-            
-            if sr.factoryCode == desc.spatialReference.factoryCode:
-                return None
-            self.__sm__("Projecting from: "+ str(fromCRS) + " To: " + str(toCRS))
-            return arcpy.Project_management(inFeature,projectFC,sr)
-        except:
-            tb = traceback.format_exc()                  
-            self.__sm__("Error Reprojecting: " + tb +" "+ arcpy.GetMessages(),"ERROR")
-            return None
-        finally:
-            sr = None
-
     def __getPolygon__(self,jsonArray, crs):
         lst_part = []  
         for part in jsonArray["rings"]: 
@@ -159,8 +191,7 @@ class EditWatershed(object):
                 lst_pnt.append(arcpy.Point(float(pnt[0]), float(pnt[1])))  
             lst_part.append(arcpy.Array(lst_pnt))  
         array = arcpy.Array(lst_part)  
-        return arcpy.Polygon(array, crs)
-                        
+        return arcpy.Polygon(array, crs)                       
     def __sm__(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
@@ -174,21 +205,21 @@ class EditWatershed(object):
 ##-------+---------+---------+---------+---------+---------+---------+---------+
 class EditWatershedWrapper(object):
     #region Constructor
-        def __init__(self):
+        def __init__(self):            
             try:
                 parser = argparse.ArgumentParser()
                 parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="CO20151123081442060000")
                 parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
-                parser.add_argument("-appendlist", help="specifies a list of polygons to append", type=json.loads, default =r'[{"rings":[[[-107.2679328918457,38.576604801999657],[-107.27145195007324,38.57647060127529],[-107.27173089981079,38.578248740526064],[-107.26780414581299,38.578835852310405],[-107.2679328918457,38.576604801999657]]]},{"rings":[[[-107.26870536804199,38.579708123814271],[-107.27303981781006,38.580546836424418],[-107.27003574371338,38.580999737161612],[-107.27181673049927,38.582157137181547],[-107.26756811141968,38.581217799460909],[-107.26870536804199,38.579708123814271]]]}]')
-                parser.add_argument("-removelist", help="specifies a list of polygons to remove", type=json.loads, default = r'[{"rings":[[[-107.26634502410887,38.582056494441964],[-107.26722478866577,38.577779047643375],[-107.25879192352294,38.577342901502213],[-107.26149559020996,38.58120102546139],[-107.26634502410887,38.582056494441964]]]}]')#r'[{"rings":[[[-107.26634502410887,38.582056494441964],[-107.26722478866577,38.577779047643375],[-107.25879192352294,38.577342901502213],[-107.26149559020996,38.58120102546139],[-107.26634502410887,38.582056494441964]]],"spatialReference":{"wkid":4326}}]')
+                parser.add_argument("-appendlist", help="specifies a list of polygons to append", type=str, default = r'[{rings:[[[-107.2679328918457,38.576604801999657],[-107.27145195007324,38.57647060127529],[-107.27173089981079,38.578248740526064],[-107.26780414581299,38.578835852310405],[-107.2679328918457,38.576604801999657]]]},{rings:[[[-107.26870536804199,38.579708123814271],[-107.27303981781006,38.580546836424418],[-107.27003574371338,38.580999737161612],[-107.27181673049927,38.582157137181547],[-107.26756811141968,38.581217799460909],[-107.26870536804199,38.579708123814271]]]}]')
+                parser.add_argument("-removelist", help="specifies a list of polygons to remove", type=str, default = r'[{"rings":[[[-107.26634502410887,38.582056494441964],[-107.26722478866577,38.577779047643375],[-107.25879192352294,38.577342901502213],[-107.26149559020996,38.58120102546139],[-107.26634502410887,38.582056494441964]]]}]')#r'[{"rings":[[[-107.26634502410887,38.582056494441964],[-107.26722478866577,38.577779047643375],[-107.25879192352294,38.577342901502213],[-107.26149559020996,38.58120102546139],[-107.26634502410887,38.582056494441964]]],"spatialReference":{"wkid":4326}}]')
                 parser.add_argument("-wkid", help="specifies the esri well known id of pourpoint ", type=str, default = '4326')
                 args = parser.parse_args()
 
                 ssedit = EditWatershed(args.directory, args.workspaceID)
-                if(ssedit.IsValid):
-                    ssedit.EditWatershed(args.appendlist,'append', args.wkid)
-                    ssedit.EditWatershed(args.removelist,'remove', args.wkid)
-
+                if(not ssedit.IsValid): raise Exception("Invalid Exception was thrown. Workspace may be invalid")
+                
+                ssedit.Execute(json.loads(args.appendlist.replace('rings','"rings"')),json.loads(args.removelist.replace('rings','"rings"')),args.wkid)                    
+                
                 Results = {
                        "Workspace": ssedit.WorkspaceID,
                        "Message": ssedit.Message.replace("'",'"').replace('\n',' ')
