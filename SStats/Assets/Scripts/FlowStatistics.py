@@ -43,16 +43,18 @@ import decimal
 
 class FlowStatistics(object):
     #region Constructor
-    def __init__(self,directory, workspaceID, regionID):  
+    def __init__(self,directory, workspaceID, regionID):   
         self.isInitialized = False
+        self.__xmlPath__ = r"D:\ss_apps\XML" 
         self.WorkspaceID = workspaceID
         self.RegionID = regionID
         self.isComplete = False
         self.Message =""  
         self.FlowReport = None  
         self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
+        self.__TempLocation__ = os.path.join(self.__MainDirectory__, "Temp")
 
-        logdir = os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'FlowStats.log')
+        logdir = os.path.join(self.__TempLocation__, 'FlowStats.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
         #Test if workspace exists before run   
         if(self.__workspaceExists__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):
@@ -62,6 +64,7 @@ class FlowStatistics(object):
     #Methods
     def Compute(self, flowsStatisticsList):
         workspace = ''
+        xmlfile = ''
         try:
             # Set overwrite option
             arcpy.env.overwriteOutput = True
@@ -70,17 +73,17 @@ class FlowStatistics(object):
             self.__sm__('workspace set: '+self.WorkspaceID)
             workspace = os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers")
 
-            outputFile = os.path.join(self.__MainDirectory__, "Temp","flowStatisticsFile{0}")
-            
+            outputFile = os.path.join(self.__TempLocation__,"flowStatisticsFile{0}")
+            xmlfile = self.__SSXMLPath__("StreamStats{0}.xml".format(self.RegionID), '#',self.__TempLocation__)
             arcpy.CheckOutExtension("Spatial")
             self.__sm__("Stated calc flow statistics")
 
             ArcHydroTools.ComputeFlows(os.path.join(workspace,"GlobalWatershed"), 
                                        os.path.join(workspace,"GlobalWatershedPoint"), 
                                        outputFile.format(".xml"), outputFile.format(".htm"), 
-                                       self.__getXMLPath__(),
+                                       xmlfile,
                                        flowsStatisticsList, 
-                                       os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'cfwrkspce.gdb') )
+                                       os.path.join(os.path.join(self.__MainDirectory__,"Temp"), "", 'cfwrkspce.gdb') )
 
             self.__sm__(arcpy.GetMessages(),'AHMSG')
             arcpy.CheckInExtension("Spatial")
@@ -114,15 +117,41 @@ class FlowStatistics(object):
         else : logging.info(msg)
     def __workspaceExists__(self, workspace):
          return arcpy.Exists(workspace)
-    def __getXMLPath__(self):
-        #check tempdir
-        tempDir = os.path.join(self.__MainDirectory__,"Temp")
-        if os.path.exists(os.path.join(tempDir, "StreamStats{0}.xml".format(self.RegionID))):
-            return os.path.join(tempDir, "StreamStats{0}.xml".format(self.RegionID))
-        else:
+    def __SSXMLPath__(self, xmlFileName, copyToDirectory="#", newTempWorkspace = "#"):
+        file = None
+        xmlFile =''
+        try:
+            #return self.__SSXMLPath__("StreamStats{0}.xml".format(self.RegionID),'#',self.__TempLocation__)
+            #move the file to tempDirectory
+            if os.path.exists(os.path.join(self.__TempLocation__, xmlFileName)):
+                xmlFile = os.path.join(self.__TempLocation__, xmlFileName)
+            else:
             #default location
-            return r"D:\ss_apps\XML\StreamStats{0}.xml".format(self.RegionID)
-    
+                xmlFile = os.path.join(self.__xmlPath__,xmlFileName)
+
+            
+            if copyToDirectory != "#":
+                shutil.copy(xmlFile, copyToDirectory)
+                xmlFile = os.path.join(copyToDirectory,xmlFileName)
+
+            if newTempWorkspace == "#":
+                return xmlFile
+
+            #update tempworkspace
+            xmlDoc = xml.dom.minidom.parse(xmlFile)
+            xmlDoc.getElementsByTagName('TempLocation')[0].firstChild.data = newTempWorkspace
+            file = open(xmlFile,"wb")
+            xmlDoc.writexml(file)
+
+            return xmlFile
+        except:
+             tb = traceback.format_exc()
+             self.__sm__(tb,"ERROR")
+        finally:
+            if file != None and not file.closed: 
+                file.close 
+                file = None
+
     def __parseXML__(self, file):
         try:
             self.__sm__("parsing xml")
@@ -156,9 +185,9 @@ class FlowStatisticsWrapper(object):
         def __init__(self):
             try:
                 parser = argparse.ArgumentParser()
-                parser.add_argument("-stabbr", help="specifies the abbr state name to perform delineation", type=str, default="IA")
-                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20141217090050504000")
-                parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
+                parser.add_argument("-stabbr", help="specifies the abbr state name to perform delineation", type=str, default="NY")
+                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="NY20151116065555747000")
+                parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"C:\gistemp\ClientData")
                 parser.add_argument("-flowtype", help="specifies the ';' separated list of flow types to computed", type=str, default = r"")
                 args = parser.parse_args()
 

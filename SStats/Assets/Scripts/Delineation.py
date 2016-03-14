@@ -16,6 +16,7 @@
 #       
 
 #region "Comments"
+#08.19.2015 jkn - fixed hucid sync issue. By removing createfeature in __removePolygonHoles__
 #08.07.2015 jkn - modified to store in local projection
 #11.05.2014 jkn - Created/ Adapted from John Guthrie's getGW12.py
 #endregion
@@ -43,9 +44,8 @@ class Delineation(object):
         self.Message =""
         self.__schemaPath__ = r"D:\ss_socs\ss_gp\schemas"
         self.__xmlPath__ = r"D:\ss_apps\XML" 
-
-        self.__regionID__ = regionID
-        self.__templatePath__ = os.path.join(self.__schemaPath__,self.__regionID__ + "_ss.gdb","Layers",'{0}' + self.__regionID__)
+        self.__regionID__ = regionID        
+        self.__templatePath__ = os.path.join(self.__schemaPath__,self.__regionID__ + "_ss.gdb","Layers")
         self.WorkspaceID = self.__regionID__ + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')
         self.__WorkspaceDirectory__ = self.__getDirectory__(os.path.join(directory, self.WorkspaceID))
 
@@ -63,7 +63,7 @@ class Delineation(object):
         xmlPath =''
         datasetPath = ''
         featurePath=''
-
+        templateFeaturePath=''
         sr = None
         GWP = None
         GW = None
@@ -72,8 +72,10 @@ class Delineation(object):
             arcpy.env.overwriteOutput = True
             arcpy.env.workspace = self.__TempLocation__
             arcpy.env.scratchWorkspace = self.__TempLocation__
-            
-            sr = arcpy.Describe(self.__templatePath__.format("GlobalWatershedPoint")).spatialReference
+
+            templateFeaturePath=os.path.join(self.__templatePath__,'{0}' + self.__regionID__)
+
+            sr = arcpy.Describe(self.__templatePath__).spatialReference
             self.__sm__("Template spatial ref: "+ sr.name)
 
             self.__sm__("Delineation Started") 
@@ -83,20 +85,20 @@ class Delineation(object):
             self.__sm__("creating workspace environment. "+ datasetPath)
             
             GWP = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedPoint", "POINT", 
-                                                      self.__templatePath__.format("GlobalWatershedPoint") , "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
+                                                      templateFeaturePath.format("GlobalWatershedPoint") , "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE",sr)
             GW = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedTemp", "POLYGON", 
-                                                     self.__templatePath__.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
+                                                     templateFeaturePath.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE",sr)
             
             xmlPath = self.__SSXMLPath__("StreamStats{0}.xml".format(self.__regionID__), self.__TempLocation__, self.__TempLocation__)
                         
             arcpy.CheckOutExtension("Spatial")
             self.__sm__("Starting Delineation")
+
             ArcHydroTools.StreamstatsGlobalWatershedDelineation(PourPoint, GW, GWP, xmlPath , "CLEARFEATURES_NO", self.WorkspaceID)
+            self.__sm__(arcpy.GetMessages(),'AHMSG')
 
             #remove holes  
-            self.__removePolygonHoles__(GW,featurePath,sr)
-
-            self.__sm__(arcpy.GetMessages(),'AHMSG')
+            self.__removePolygonHoles__(GW,featurePath)
             arcpy.CheckInExtension("Spatial")
             
             self.__sm__("Finished")
@@ -114,12 +116,10 @@ class Delineation(object):
     #endregion  
       
     #region Helper Methods
-    def __removePolygonHoles__(self, polyFC, path, sr):
+    def __removePolygonHoles__(self, polyFC, path):
         try:
-            elimGW = arcpy.CreateFeatureclass_management(path, "GlobalWatershed", "POLYGON", 
-                                                         self.__templatePath__.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE", sr)
 
-            result = arcpy.EliminatePolygonPart_management(polyFC, elimGW, "AREA_OR_PERCENT", "90 squaremeters", 1, "CONTAINED_ONLY")
+            result = arcpy.EliminatePolygonPart_management(polyFC, os.path.join(path,"GlobalWatershed"), "AREA_OR_PERCENT", "90 squaremeters", 1, "CONTAINED_ONLY")
 
             self.__sm__(arcpy.GetMessages())
             return result
@@ -142,7 +142,6 @@ class Delineation(object):
         except:
             x = arcpy.GetMessages()
             return subDirectory
-
     def __SSXMLPath__(self, xmlFileName, copyToDirectory="#", newTempWorkspace = "#"):
         file = None
         try:
@@ -169,7 +168,6 @@ class Delineation(object):
             if file != None and not file.closed: 
                 file.close 
                 file = None
-
     def __sm__(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 

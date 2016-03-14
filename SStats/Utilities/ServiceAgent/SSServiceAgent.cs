@@ -11,6 +11,7 @@ using Newtonsoft.Json.Linq;
 using WiM.Utilities.ServiceAgent;
 using WiM.Resources;
 using WiM.Resources.Spatial;
+using WiM.Utilities.Storage;
 using WiM.Exceptions;
 
 using SStats.Resources;
@@ -26,6 +27,7 @@ namespace SStats.Utilities.ServiceAgent
         private IDictionary<string, FeatureWrapper> _featureResultList = new Dictionary<string, FeatureWrapper>(StringComparer.InvariantCultureIgnoreCase);
 
         public string WorkspaceString { get; private set; }
+        private string RepositoryDirectory { get; set; }
         private List<string> _message = new List<string>();
         public List<string> Messages
         {
@@ -39,19 +41,22 @@ namespace SStats.Utilities.ServiceAgent
             : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
             HasGeometry = false;
+            RepositoryDirectory = getRepositoryPath();
         }
         public SSServiceAgent(string workspaceID)
             : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
-            if (!isValidWorkspace(workspaceID)) throw new BadRequestException(workspaceID + " Is not valid"); 
             WorkspaceString = workspaceID;
             HasGeometry = false;
+            RepositoryDirectory = getRepositoryPath();
+            if (!isWorkspaceValid(RepositoryDirectory)) throw new BadRequestException(workspaceID + " Is not valid"); 
+            
         }
         #endregion
 
         #region Methods
 
-        public void Delineate(double x, double y, int espg, String basinCode)
+        public Boolean Delineate(double x, double y, int espg, String basinCode)
         {
             JObject result = null;
             string msg;
@@ -64,11 +69,39 @@ namespace SStats.Utilities.ServiceAgent
 
                 if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
 
-                parseDelineationResult(result);
+                parseResult(result);
+                return true;
             }
             catch (Exception ex)
             {
+                sm("Error delineating " + ex.Message);
                 throw new Exception(ex.Message);
+            }
+        }
+        public Boolean EditWatershed(WatershedEditDecisionList watershedEDL, int espg)
+        {
+            List<GeometryBase> appendFeatures = null;
+            List<GeometryBase> removeFeatures = null;
+            string msg;
+            JObject result = null;
+            try
+            {
+                //verify watershed exists
+                if (!isWorkspaceValid(RepositoryDirectory)) throw new DirectoryNotFoundException("Workspace not found.");
+                //convert to esriFeatures
+                appendFeatures = parseFeatures(watershedEDL.Append, espg);
+                removeFeatures = parseFeatures(watershedEDL.Remove, espg);
+ 
+                result = Execute(getProcessRequest(getProcessName(processType.e_editwatershed), getBody(appendFeatures, removeFeatures,espg))) as JObject;
+
+                if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
+                parseResult(result);
+                return true;
+            }
+            catch (Exception ex)
+            {
+                sm("Error editing watershed " + ex.Message);
+                return false;
             }
         }
         public List<Parameter> GetParameters(string state, string pList)
@@ -152,7 +185,7 @@ namespace SStats.Utilities.ServiceAgent
                 if (db != null) db.Dispose();
             }
         }//end Get
-        public string GetWorkspace(Int32 type)
+        public Stream GetFileItem(Int32 type)
         {
             string result = string.Empty;
             //1= shape
@@ -161,15 +194,15 @@ namespace SStats.Utilities.ServiceAgent
             {
                 dynamic resultObj = Execute(getProcessRequest(getProcessName(processType.e_shape),
                                         String.Format("-workspaceID {0} -directory {1} -toType {2}",
-                                        this.WorkspaceString, ConfigurationManager.AppSettings["SSRepository"], type)));
+                                        this.WorkspaceString, RepositoryDirectory, type)));
                 result = resultObj.Workspace;
             }
             else
                 result = Path.Combine(WorkspaceString, WorkspaceString + ".gdb");
 
-            if (!isValidWorkspace(result)) throw new BadRequestException(result + "is not valid workspace");
-            
-            return result;
+
+            Storage aStorage = new Storage(this.RepositoryDirectory);
+            return aStorage.GetZipFile(result);
         }
         public List<string> GetStateFlowStatistics(string regionCode) {
             SSXMLAgent xmlagent = null;
@@ -202,7 +235,6 @@ namespace SStats.Utilities.ServiceAgent
 
             return result;
         }
-
         public List<FeatureWrapper> GetFeatures(string features, Int32 crsCode, Int32 simplificationOption = 1)
         {
             List<string> requestFcodes = new List<string>();
@@ -228,7 +260,7 @@ namespace SStats.Utilities.ServiceAgent
         }
         #endregion
 
-        #region Delineation Helper Methods
+        #region Watershed Helper Methods
         private Boolean validStudyCode(string code) {
             List<string> exludedBasinIDs = null;
             char[] delimiterChars = { ',' };
@@ -248,7 +280,7 @@ namespace SStats.Utilities.ServiceAgent
             List<string> body = new List<string>();
             try
             {
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
                 body.Add("-stabbr " + state);
                 body.Add(String.Format("-pourpoint [{0},{1}]",X,Y));
                 body.Add("-pourpointwkid " + wkid);
@@ -259,7 +291,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }//end getParameterList   
-        private void parseDelineationResult(JObject SSdelineationResult)
+        private void parseResult(JObject SSdelineationResult)
         {
             char[] delimiterChars = { '_'};
             try
@@ -277,7 +309,45 @@ namespace SStats.Utilities.ServiceAgent
                 throw new Exception("Error parsing delineation result " + ex.Message);
             }//end try
         }//end parseDelineatinResult 
-       
+
+        private string getBody(List<GeometryBase> appendList, List<GeometryBase> removeList, int wkid)
+        {
+            List<string> body = new List<string>();
+            try
+            {
+                body.Add("-workspaceID " + this.WorkspaceString);
+                body.Add("-directory " + RepositoryDirectory);
+                body.Add("-appendlist " +  JsonConvert.SerializeObject(appendList));
+                body.Add("-removelist " + JsonConvert.SerializeObject(removeList));
+                body.Add("-wkid " + wkid);
+                return string.Join(" ", body);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }//end getParameterList  
+        private List<GeometryBase> parseFeatures(List<dynamic> jobj, Int32 espg)
+        {
+            List<GeometryBase> featurelist = new List<GeometryBase>();
+            EsriFeature rset = null;
+            try
+            {
+                 
+                foreach (JToken item in jobj)
+                {
+                    String geomtype = Convert.ToString(item.SelectToken("geometry.type"));
+                    rset = new EsriFeature(item, geomtype);
+                    featurelist.Add(rset.geometry);
+                }//next item
+
+                return featurelist;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }//end try
+        }
         #endregion
 
         #region Parameter Helper Methods
@@ -289,7 +359,7 @@ namespace SStats.Utilities.ServiceAgent
                 body.Add("-stabbr " + state);
                 body.Add("-parameters " + string.Join(";", bCharList.Select(p => p.code).ToList()));
                 body.Add("-workspaceID " + this.WorkspaceString);
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
 
 
                 return string.Join(" ", body);
@@ -338,7 +408,7 @@ namespace SStats.Utilities.ServiceAgent
                     // double quotes around flow type to account for spaces"
                     body.Add("-flowtype " + '"'+flowtype+'"');
                 body.Add("-workspaceID " + this.WorkspaceString);
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
 
                 return string.Join(" ", body);
             }
@@ -379,7 +449,7 @@ namespace SStats.Utilities.ServiceAgent
                 if(fList.Count > 0)
                     body.Add("-includefeatures "+ string.Join(";", fList.Select(f => f).ToList()));
                 body.Add("-workspaceID " + this.WorkspaceString);
-                body.Add("-directory " + ConfigurationManager.AppSettings["SSRepository"]);
+                body.Add("-directory " + RepositoryDirectory);
                 body.Add("-outputcrs " + crsCode);
                 body.Add("-simplification " + simplificationOption);
 
@@ -433,12 +503,39 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Other Helper Methods
-        private Boolean isValidWorkspace(string workspaceid)
+        protected string getRepositoryPath()
+        {
+            string selectedPath = string.Empty;
+            string uncPaths = ConfigurationManager.AppSettings["UNCDrives"];
+            string repository = ConfigurationManager.AppSettings["SSRepository"];
+            try
+            {
+                //is there a workspaceID
+                bool isWorkspace = string.IsNullOrEmpty(this.WorkspaceString);
+
+                foreach (string dir in uncPaths.Split(','))
+                {
+                    selectedPath = System.IO.Path.Combine(dir, repository);
+                    if (!System.IO.Directory.Exists(selectedPath)) 
+                        continue;
+                    else if (string.IsNullOrEmpty(this.WorkspaceString) || System.IO.Directory.Exists(System.IO.Path.Combine(selectedPath, WorkspaceString)))
+                    {
+                        //sm("selected path: " + selectedPath);
+                        return selectedPath;
+                    }
+                }//next dir
+                throw new Exception("Directory not found");
+            }
+            catch (Exception ex)
+            {
+                throw new Exception("Error finding directory " + ex.Message);
+            }
+        }
+        private Boolean isWorkspaceValid(string repository)
         {
             try
             {
-                string dir = ConfigurationManager.AppSettings["SSRepository"];
-                if (!Directory.Exists(Path.Combine(dir, workspaceid))) return false;
+                if (!Directory.Exists(Path.Combine(repository, this.WorkspaceString))) return false;
                 return true;
             }
             catch (Exception)
@@ -453,9 +550,9 @@ namespace SStats.Utilities.ServiceAgent
 
             try
             {                                
-                fields = jobj["fields"] != null ? JsonConvert.DeserializeObject<List<Field>>(jobj.SelectToken("fields").ToString()) : null; 
-                obj = (JArray)jobj.SelectToken("features");
-                gtype = (string)jobj.SelectToken("geometryType");
+                fields = jobj["fields"] != null ? JsonConvert.DeserializeObject<List<Field>>(jobj.SelectToken("fields").ToString()) : null;
+                obj = (JArray)jobj.SelectToken("features") ?? (JArray)jobj.SelectToken("geometry");
+                gtype = (string)jobj.SelectToken("geometryType")??(string)jobj.SelectToken("type");
                 wkid = (int)jobj.SelectToken("spatialReference.wkid");
                 foreach (JToken item in obj)
                     Feature.Add(new EsriFeature(item, gtype));
@@ -502,6 +599,9 @@ namespace SStats.Utilities.ServiceAgent
             {
                 case processType.e_delineation:
                     uri = ConfigurationManager.AppSettings["Delineation"];
+                    break;
+                case processType.e_editwatershed:
+                    uri = ConfigurationManager.AppSettings["EditWatershed"];
                     break;
                 case processType.e_parameters:
                     uri = ConfigurationManager.AppSettings["Characteristics"];
@@ -557,7 +657,8 @@ namespace SStats.Utilities.ServiceAgent
             e_parameters,
             e_shape,
             e_flowstats,
-            e_features
+            e_features,
+            e_editwatershed
         }
 
         #endregion
