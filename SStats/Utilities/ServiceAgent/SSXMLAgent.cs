@@ -39,7 +39,7 @@ using SStats.Resources;
 #endregion
 namespace SStats.Utilities.ServiceAgent
 {
-    public class SSXMLAgent: IMessage
+    public class SSXMLAgent
     {
 
     #region " asynchronous delegates "
