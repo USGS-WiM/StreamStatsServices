@@ -79,8 +79,8 @@ class FlowStatistics(object):
                                        os.path.join(workspace,"GlobalWatershedPoint"), 
                                        outputFile.format(".xml"), outputFile.format(".htm"), 
                                        self.__getXMLPath__(),
-                                       flowsStatisticsList, "", 
-                                       self.WorkspaceID )
+                                       flowsStatisticsList, 
+                                       os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'cfwrkspce.gdb') )
 
             self.__sm__(arcpy.GetMessages(),'AHMSG')
             arcpy.CheckInExtension("Spatial")
