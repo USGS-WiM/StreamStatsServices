@@ -33,7 +33,7 @@ using WiM.Resources;
 
 namespace SSDB
 {
-    public class postgresqldbOps:IDisposable, IMessage
+    public class postgresqldbOps:IDisposable
     {
         #region "Fields"
         //Server=136.177.100.147;Port=5432;User Id=ss_user;Password=%M@tch@R00m#77;Database=globalsde;
