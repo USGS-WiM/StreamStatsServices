@@ -40,7 +40,6 @@ using System.Reflection;
 using System.Web;
 using System.Xml.Serialization;
 
-using WiM.Utilities.Storage;
 using WiM.Exceptions;
 
 using SStats.Utilities;
@@ -57,24 +56,16 @@ namespace SStats.Handlers
             InMemoryFile fileItem;
             fileTypeEnum fType = fileTypeEnum.e_geodatabase;
             SSServiceAgent sAgent = null;
-            string src = string.Empty;
             try
             {
                 //Return BadRequest if there is no ID 
                 if (string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no filename specified" };
                
-                fType = getFileTypeByName(f);
-             
+                fType = getFileTypeByName(f);             
                 sAgent = new SSServiceAgent(workspaceID);
-                workspaceID = sAgent.GetWorkspace((Int32)fType);                  
-              
 
-                Storage aStorage = new Storage(ConfigurationManager.AppSettings["SSRepository"]);
-                
-                fileItem = new InMemoryFile(aStorage.GetZipFile(workspaceID));
-                
-                workspaceID = workspaceID.Contains('\\') ? workspaceID.Substring(workspaceID.LastIndexOf('\\') + 1) + ".zip" : workspaceID + ".zip";
-                fileItem.FileName = workspaceID.Replace(".gdb","");
+                fileItem = new InMemoryFile(sAgent.GetFileItem((Int32)fType));                
+                fileItem.FileName = "SS_"+workspaceID + ".zip";
           
                 return new OperationResult.OK { ResponseResource = fileItem };
 

@@ -58,7 +58,9 @@ class ConvertToSHP(object):
         newdirname = "Layers"
         inFeatures = None
         FtoShp = None
+        
         try:
+            globalwatershed = os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
             arcpy.env.workspace =  os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers")
             self.__sm__('workspace set: '+self.WorkspaceID)
             outLocation = self.__getDirectory__(os.path.join(self.__MainDirectory__,newdirname))
@@ -67,6 +69,9 @@ class ConvertToSHP(object):
             FtoShp = arcpy.FeatureClassToShapefile_conversion (inFeatures, outLocation,)
             self.WorkspaceID= os.path.join(self.WorkspaceID, newdirname)
             self.__sm__(arcpy.GetMessages(),'arcmsg')
+            content = map(lambda x:x.name, arcpy.ListFields(globalwatershed))
+            self.__writeToFile__(os.path.join(outLocation,"GlobalWatershedFields.txt"),content)
+
             self.isComplete = True
         except:
             tb = traceback.format_exc() 
@@ -75,6 +80,18 @@ class ConvertToSHP(object):
         finally:
             del inFeatures
             del FtoShp
+    def __writeToFile__(self, file, content):
+        f = None
+        try:
+            f = open(file, "a")
+            f.writelines("Field Name"+'\n')
+            f.writelines(map(lambda x:x+'\n', content))
+        except:
+            self.__sm__("file " + file + ' failed to write', 0.201, 'ERROR')
+        finally:
+            if not f == None or not f.closed :
+                f.close();
+    
     def __getDirectory__(self, subDirectory):
         if os.path.exists(subDirectory): 
             shutil.rmtree(subDirectory)
@@ -100,7 +117,7 @@ class ConversionWrapper(object):
         def __init__(self):
             try:
                 parser = argparse.ArgumentParser()
-                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20141112093901899000")
+                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="CO20151123081442060000")
                 parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
                 parser.add_argument("-toType", help="specifies the type to convert to, 2 = .gdb, 1 = .shp", type=int, choices=[1,2], default = 1)
                 args = parser.parse_args()
