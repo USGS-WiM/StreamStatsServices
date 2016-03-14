@@ -20,7 +20,7 @@ using SSDB;
 namespace SStats.Utilities.ServiceAgent
 {
 
-    public class SSServiceAgent : ExternalProcessServiceAgentBase, IMessage
+    public class SSServiceAgent : ExternalProcessServiceAgentBase
     {
         
         #region Properties
