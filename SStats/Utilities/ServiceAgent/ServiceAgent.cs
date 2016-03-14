@@ -61,6 +61,11 @@ namespace SStats.Utilities.ServiceAgent
         {
             HasGeometry = false;
         }
+        public ServiceAgent(string baseurl)
+            : base(baseurl)
+        {
+            HasGeometry = false;
+        }
         #endregion
        
         #region Methods
@@ -135,6 +140,14 @@ namespace SStats.Utilities.ServiceAgent
                 if(db != null) db.Dispose();
             }
         }//end Get
+        public dynamic GetWaterUse(String wucode, string workspaceID, Int32 startyear,Int32 endyear =-999)
+        {
+            string token = ConfigurationManager.AppSettings["WaterUseToken"];
+            RestSharp.RestRequest request = getRestRequest(String.Format(getURI(serviceType.e_wateruse), wucode, token), getBody(workspaceID, startyear, endyear, "pjson"));
+            request.AddHeader("Referer", "Referer: http://54.164.188.167:6080/arcgis/rest/services/WaterUse/OHWU/MapServer/exts/WaterUseSOE/WaterUse");
+
+            return Execute(request);
+        }
         #endregion
         #region Delineation Helper Methods
         private string getBody(string state, double X, double Y, int wkid)
@@ -307,6 +320,27 @@ namespace SStats.Utilities.ServiceAgent
         
         #endregion
 
+        #region WaterUse Helper Methods
+        private string getBody(string workspaceID, Int32 startyear, Int32 endyear, string format)
+        {
+            List<string> body = new List<string>();
+            try
+            {
+                body.Add("workspaceId=" + workspaceID);
+                body.Add("f=" + format);
+                body.Add("StartYear=" + startyear);
+                body.Add("EndYear=" + endyear);
+
+
+                return string.Join("&", body);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }//end getParameterList
+        #endregion
+
         #region Helper Methods
         private String getURI(serviceType sType)
         {
@@ -329,6 +363,10 @@ namespace SStats.Utilities.ServiceAgent
                 case serviceType.e_state:
                     //"ss_states_dev/MapServer/3/query?geometry={{x:{0},y:{1}}}&geometryType=esriGeometryPoint&inSR={2}&spatialRel=esriSpatialRelIntersects&outFields={3}&returnGeometry=false&f=pjson";
                     uri = ConfigurationManager.AppSettings["SSStateService"];
+                    break;
+                case serviceType.e_wateruse:
+                    //WaterUse/{0}/MapServer/exts/WaterUseSOE/WaterUse?token={1}
+                    uri = ConfigurationManager.AppSettings["WaterUseService"];
                     break;
             }
 
@@ -359,7 +397,8 @@ namespace SStats.Utilities.ServiceAgent
             e_delineation,
             e_characteristics,
             e_characteristicsList,
-            e_state
+            e_state,
+            e_wateruse
         }
         public enum ResultType { 
             e_basin,
