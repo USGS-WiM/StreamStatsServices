@@ -58,8 +58,7 @@ namespace SStats.Handlers
             try
             {
                 //return implemented regions
-                availableRegions = JsonConvert.DeserializeObject<JObject>(ConfigurationManager.AppSettings["WaterUseRegions"]).Properties().Select(p => 
-                    p.Name).ToList(); 
+                availableRegions = JsonConvert.DeserializeObject<JObject>(ConfigurationManager.AppSettings["WaterUseRegions"]).Properties().Select(p => p.Name).ToList(); 
 
                 return new OperationResult.OK { ResponseResource = availableRegions };
             }
@@ -79,7 +78,7 @@ namespace SStats.Handlers
             try
             {
                 if (string.IsNullOrEmpty(regioncode)) return new OperationResult.BadRequest { ResponseResource = "region code or workspaceID cannot be empty" };
-                
+
                 JToken wuCode = JsonConvert.DeserializeObject<JToken>(ConfigurationManager.AppSettings["WaterUseRegions"])[regioncode.ToUpper()];
                 if (wuCode == null) return new OperationResult.BadRequest { ResponseResource = "invalid region code" };
                 wuCode["name"] = regioncode;
@@ -105,12 +104,12 @@ namespace SStats.Handlers
                 if (string.IsNullOrEmpty(regioncode) || string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest { ResponseResource = "region code or workspaceID cannot be empty" };
                 if (startyear < 1900) return new OperationResult.BadRequest { ResponseResource = "invalid start year" };
 
-                string wuCode = JsonConvert.DeserializeObject<JToken>(ConfigurationManager.AppSettings["WaterUseRegions"])[regioncode.ToUpper()].ToString();
-                if (string.IsNullOrEmpty(wuCode)) throw new Exception("invalid region code");
+                JToken wuCode = JsonConvert.DeserializeObject<JToken>(ConfigurationManager.AppSettings["WaterUseRegions"])[regioncode.ToUpper()];
+                 if (wuCode == null) return new OperationResult.BadRequest { ResponseResource = "invalid region code" };
 
                 agent = new ServiceAgent(ConfigurationManager.AppSettings["WaterUseServer"]);               
 
-                return new OperationResult.OK { ResponseResource = agent.GetWaterUse(wuCode, workspaceID, startyear, endyear) };
+                return new OperationResult.OK { ResponseResource = agent.GetWaterUse(wuCode["name"].ToString(), workspaceID, startyear, endyear) };
             }
             catch (Exception ex)
             {
