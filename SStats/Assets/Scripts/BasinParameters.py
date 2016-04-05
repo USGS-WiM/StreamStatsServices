@@ -76,7 +76,7 @@ class BasinParameters(object):
             self.__sm__('workspace set: '+self.WorkspaceID)
             outputFile = os.path.join(self.__MainDirectory__, "Temp","parameterFile{0}")
 
-            xmlfile = self.__SSXMLPath__("StreamStats{0}.xml".format(self.RegionID), '#',self.__TempLocation__)
+            xmlfile = self.__SSXMLPath__("StreamStats{0}.xml".format(self.RegionID), self.__TempLocation__)
            
             arcpy.CheckOutExtension("Spatial")
             self.__sm__("Stated calc params")
@@ -137,7 +137,7 @@ class BasinParameters(object):
             arcpy.Delete_management(os.path.join(directory,"scratch.gdb"))
         arcpy.CreateFileGDB_management(directory,'scratch.gdb')
         return os.path.join(directory,"scratch.gdb")  
-    def __SSXMLPath__(self, xmlFileName, copyToDirectory="#", newTempWorkspace = "#"):
+    def __SSXMLPath__(self, xmlFileName, newTempWorkspace = "#"):
         file = None
         xmlFile =''
         try:
@@ -145,28 +145,29 @@ class BasinParameters(object):
             #move the file to tempDirectory
             if os.path.exists(os.path.join(self.__TempLocation__, xmlFileName)):
                 xmlFile = os.path.join(self.__TempLocation__, xmlFileName)
+                self.__sm__("Using existing xmlFile "+xmlFile);
             else:
             #default location
-                xmlFile = os.path.join(self.__xmlPath__,xmlFileName)
+                xmlFile = os.path.join(self.__xmlPath__,xmlFileName)  
+                self.__sm__("Using default xmlFile "+xmlFile);          
+                shutil.copy(xmlFile, self.__TempLocation__)
+                xmlFile = os.path.join(self.__TempLocation__,xmlFileName)
+                self.__sm__("moved default xmlFile to temp "+xmlFile);  
+                if newTempWorkspace == "#":
+                    return xmlFile
 
-            
-            if copyToDirectory != "#":
-                shutil.copy(xmlFile, copyToDirectory)
-                xmlFile = os.path.join(copyToDirectory,xmlFileName)
-
-            if newTempWorkspace == "#":
-                return xmlFile
-
-            #update tempworkspace
-            xmlDoc = xml.dom.minidom.parse(xmlFile)
-            xmlDoc.getElementsByTagName('TempLocation')[0].firstChild.data = newTempWorkspace
-            file = open(xmlFile,"wb")
-            xmlDoc.writexml(file)
+                #update tempworkspace
+                xmlDoc = xml.dom.minidom.parse(xmlFile)
+                xmlDoc.getElementsByTagName('TempLocation')[0].firstChild.data = newTempWorkspace
+                file = open(xmlFile,"wb")
+                xmlDoc.writexml(file)
+                self.__sm__("renamed temp location");  
 
             return xmlFile
         except:
              tb = traceback.format_exc()
              self.__sm__(tb,"ERROR")
+             return os.path.join(self.__xmlPath__,xmlFileName)
         finally:
             if file != None and not file.closed: 
                 file.close 

@@ -144,6 +144,7 @@ namespace SStats
 
             ResourceSpace.Has.ResourcesOfType<object>()
             .AtUri("/wateruse?rcode={regioncode}&workspaceID={workspaceID}&startyear={startyear}&endyear={endyear}")
+            .And.AtUri("/wateruse?rcode={regioncode}").Named("GetWateruseConfigSettings")
             .HandledBy<WaterUseHandler>()
             .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
         }
