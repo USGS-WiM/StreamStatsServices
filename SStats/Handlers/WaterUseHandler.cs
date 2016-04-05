@@ -58,9 +58,33 @@ namespace SStats.Handlers
             try
             {
                 //return implemented regions
-                availableRegions = JsonConvert.DeserializeObject<JObject>(ConfigurationManager.AppSettings["WaterUseRegions"]).Properties().Select(p => p.Name).ToList(); 
+                availableRegions = JsonConvert.DeserializeObject<JObject>(ConfigurationManager.AppSettings["WaterUseRegions"]).Properties().Select(p => 
+                    p.Name).ToList(); 
 
                 return new OperationResult.OK { ResponseResource = availableRegions };
+            }
+            catch (Exception ex)
+            {
+                return new OperationResult.InternalServerError { ResponseResource = "Capabilities Service Error: " + ex.Message.ToString() };
+            }
+            finally
+            {
+                //agent = null;
+
+            }//end try
+        }//end Get
+        [HttpOperationAttribute(HttpMethod.GET, ForUriName = "GetWateruseConfigSettings")]
+        public OperationResult GetWateruseConfigSettings(String regioncode)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(regioncode)) return new OperationResult.BadRequest { ResponseResource = "region code or workspaceID cannot be empty" };
+                
+                JToken wuCode = JsonConvert.DeserializeObject<JToken>(ConfigurationManager.AppSettings["WaterUseRegions"])[regioncode.ToUpper()];
+                if (wuCode == null) return new OperationResult.BadRequest { ResponseResource = "invalid region code" };
+                wuCode["name"] = regioncode;
+
+                return new OperationResult.OK { ResponseResource = wuCode.ToObject(typeof(Object)) };
             }
             catch (Exception ex)
             {
