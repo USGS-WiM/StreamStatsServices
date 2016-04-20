@@ -118,15 +118,26 @@ class EditWatershed(object):
         try:
             self.__sm__("updating fields")
             includeList = list(set([f.name for f in fieldList])-set([f.name for f in arcpy.ListFields(feature)]))
-            rows = arcpy.da.SearchCursor(self.GlobalWatershed,includeList)
+            if(len(includeList)>0):
+                rows = arcpy.da.SearchCursor(self.GlobalWatershed,includeList)
+                for row in rows:
+                    for field in fieldList:
+                        if(field.name in includeList):
+                            arcpy.AddField_management(feature, field.name , field.type , field.precision , field.scale, field.length, field.aliasName , field.isNullable , field.required)
+                            val = row[includeList.index(field.name)]
+                            if(val):                            
+                                arcpy.CalculateField_management(feature,field.name,'"'+str(val)+'"',"PYTHON")
+                            if(field.name == "Edited"):
+                                arcpy.CalculateField_management(feature,field.name,'"'+str(1)+'"',"PYTHON")
+                    break
+
+            rows = arcpy.da.SearchCursor(self.GlobalWatershed,"Edited")
             for row in rows:
                 for field in fieldList:
-                    if(field.name in includeList):
-                        arcpy.AddField_management(feature, field.name , field.type , field.precision , field.scale, field.length, field.aliasName , field.isNullable , field.required)
-                        val = row[includeList.index(field.name)]
-                        if(val):                            
-                            arcpy.CalculateField_management(feature,field.name,'"'+str(val)+'"',"PYTHON")
-                break
+                    if(field.name == "Edited"):
+                        arcpy.CalculateField_management(feature,field.name,'"'+str(1)+'"',"PYTHON")
+                        break;
+                    
         except:
             tb = traceback.format_exc()
             self.__sm__("Failed to include fields " + tb,"ERROR") 
@@ -208,10 +219,10 @@ class EditWatershedWrapper(object):
         def __init__(self):            
             try:
                 parser = argparse.ArgumentParser()
-                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="CO20151123081442060000")
+                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="OK20160418144755086000")
                 parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
-                parser.add_argument("-appendlist", help="specifies a list of polygons to append", type=str, default = r'[{rings:[[[-107.2679328918457,38.576604801999657],[-107.27145195007324,38.57647060127529],[-107.27173089981079,38.578248740526064],[-107.26780414581299,38.578835852310405],[-107.2679328918457,38.576604801999657]]]},{rings:[[[-107.26870536804199,38.579708123814271],[-107.27303981781006,38.580546836424418],[-107.27003574371338,38.580999737161612],[-107.27181673049927,38.582157137181547],[-107.26756811141968,38.581217799460909],[-107.26870536804199,38.579708123814271]]]}]')
-                parser.add_argument("-removelist", help="specifies a list of polygons to remove", type=str, default = r'[{"rings":[[[-107.26634502410887,38.582056494441964],[-107.26722478866577,38.577779047643375],[-107.25879192352294,38.577342901502213],[-107.26149559020996,38.58120102546139],[-107.26634502410887,38.582056494441964]]]}]')#r'[{"rings":[[[-107.26634502410887,38.582056494441964],[-107.26722478866577,38.577779047643375],[-107.25879192352294,38.577342901502213],[-107.26149559020996,38.58120102546139],[-107.26634502410887,38.582056494441964]]],"spatialReference":{"wkid":4326}}]')
+                parser.add_argument("-appendlist", help="specifies a list of polygons to append", type=str, default = r'[]')
+                parser.add_argument("-removelist", help="specifies a list of polygons to remove", type=str, default = r'[{rings:[[[-99.492187499999986,36.366424946584353],[-99.4508171081543,36.349144422302807],[-99.4928741455078,36.336700069393174],[-99.4973373413086,36.349559199818209],[-99.492187499999986,36.366424946584353]]]}]')
                 parser.add_argument("-wkid", help="specifies the esri well known id of pourpoint ", type=str, default = '4326')
                 args = parser.parse_args()
 
