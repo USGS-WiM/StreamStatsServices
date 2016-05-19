@@ -144,7 +144,15 @@ namespace SStats.Utilities.ServiceAgent
         {
             string token = ConfigurationManager.AppSettings["WaterUseToken"];
             RestSharp.RestRequest request = getRestRequest(String.Format(getURI(serviceType.e_wateruse), wucode, token), getBody(workspaceID, startyear, endyear, "pjson"));
-            request.AddHeader("Referer", "Referer: http://54.164.188.167:6080/arcgis/rest/services/WaterUse/OHWU/MapServer/exts/WaterUseSOE/WaterUse");
+            request.AddHeader("Referer", "Referer: http://streamstats.ags.cr.usgs.gov/streamstats");
+
+            return Execute(request);
+        }
+        public dynamic GetWaterUse(String wucode, WiM.Resources.Spatial.EsriFeatureRecordSet watershed, Int32 startyear, Int32 endyear = -999)
+        {
+            string token = ConfigurationManager.AppSettings["WaterUseToken"];
+            RestSharp.RestRequest request = getRestRequest(String.Format(getURI(serviceType.e_wateruse), wucode, token), getBody(watershed, startyear, endyear, "pjson"));
+            request.AddHeader("Referer", "Referer: http://streamstats.ags.cr.usgs.gov/streamstats");
 
             return Execute(request);
         }
@@ -327,6 +335,24 @@ namespace SStats.Utilities.ServiceAgent
             try
             {
                 body.Add("workspaceId=" + workspaceID);
+                body.Add("f=" + format);
+                body.Add("StartYear=" + startyear);
+                body.Add("EndYear=" + endyear);
+
+
+                return string.Join("&", body);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }//end getParameterList
+        private string getBody(WiM.Resources.Spatial.EsriFeatureRecordSet watershed, Int32 startyear, Int32 endyear, string format)
+        {
+            List<string> body = new List<string>();
+            try
+            {
+                body.Add("watershed=" + JsonConvert.SerializeObject(watershed));
                 body.Add("f=" + format);
                 body.Add("StartYear=" + startyear);
                 body.Add("EndYear=" + endyear);

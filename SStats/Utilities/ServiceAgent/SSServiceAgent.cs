@@ -55,7 +55,6 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
 
         #region Methods
-
         public Boolean Delineate(double x, double y, int espg, String basinCode)
         {
             JObject result = null;
@@ -257,6 +256,26 @@ namespace SStats.Utilities.ServiceAgent
             }
            
 
+        }
+        public IDictionary<string,string> GetAttributes(string attrList)
+        {
+            JObject result = null;
+            List<string> attrCodes;
+
+            try
+            {
+                attrCodes = this.parse(attrList);
+                if (attrCodes == null && attrCodes.Count <= 0) return new Dictionary<string,string>();
+
+                result = Execute(getProcessRequest(getProcessName(processType.e_attributes), getBody(String.Join(";", attrCodes)))) as JObject;
+                
+                //deserialize result
+                return parseAttributes(result,attrCodes);
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }
         }
         #endregion
 
@@ -502,6 +521,58 @@ namespace SStats.Utilities.ServiceAgent
 
         #endregion
 
+        #region Attribute Helper Methods
+        private string getBody(string aList)
+        {
+            List<string> body = new List<string>();
+            try
+            {
+                body.Add("-workspaceID " + this.WorkspaceString);
+                body.Add("-directory " + RepositoryDirectory);
+                body.Add("-attributes " + aList);
+
+
+                return string.Join(" ", body);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
+        private IDictionary<string, string> parseAttributes(JObject jobj, List<string>attrlist)
+        {
+            Dictionary<string,string> Attributes = new Dictionary<string,string>(StringComparer.InvariantCultureIgnoreCase);           
+            char[] delimiterChars = { '_' };
+            try
+            {
+                JArray objArray = (JArray)jobj.SelectToken("Attributes");
+
+                this.sm(jobj.Value<string>("Message")
+                    .Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).Where(msg => msg.Contains("AHMSG:"))
+                                                                                 .Select(msg => msg.Substring((msg.IndexOf("Start Time:")) > 0 ? msg.IndexOf("Start Time:") : 0)).ToList());
+
+                foreach (var a in attrlist)
+                {
+                    foreach (var r in objArray)
+                    {
+                        if ((r["name"] != null || r["value"] != null) && !String.IsNullOrEmpty(r.SelectToken("value").ToString()) && String.Equals(r.SelectToken("name").ToString(),a,StringComparison.OrdinalIgnoreCase))
+                        {
+                            if (!Attributes.ContainsKey(r.SelectToken("name").ToString()))
+                                Attributes.Add(r.SelectToken("name").ToString(), r.SelectToken("value").ToString());
+                        }//end if   
+                    }//next r                                    
+                }//next a
+
+                return Attributes;
+            }
+            catch (Exception ex)
+            {
+                throw;
+            }//end try
+        }
+
+        #endregion
+
         #region Other Helper Methods
         protected string getRepositoryPath()
         {
@@ -615,6 +686,9 @@ namespace SStats.Utilities.ServiceAgent
                 case processType.e_features:
                     uri = ConfigurationManager.AppSettings["Features"];
                     break;
+                case processType.e_attributes:
+                    uri = ConfigurationManager.AppSettings["Attributes"];
+                    break;
             }
 
             return uri;
@@ -658,7 +732,9 @@ namespace SStats.Utilities.ServiceAgent
             e_shape,
             e_flowstats,
             e_features,
-            e_editwatershed
+            e_editwatershed,
+            e_attributes
+
         }
 
         #endregion
