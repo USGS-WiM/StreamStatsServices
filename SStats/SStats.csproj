@@ -104,7 +104,7 @@
     </Reference>
   </ItemGroup>
   <ItemGroup>
-    <Content Include="Assets\Scripts\BasinParametersTest.py" />
+    <Content Include="Assets\Scripts\AttributesFromWorkspace.py" />
     <Content Include="Assets\Scripts\BasinParameters.py" />
     <Content Include="Assets\Scripts\FeaturesTest.py" />
     <Content Include="Assets\Scripts\Features.py" />
