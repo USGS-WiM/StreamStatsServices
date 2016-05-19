@@ -99,6 +99,9 @@ namespace SStats.Handlers
         public OperationResult Get(String regioncode, string workspaceID, Int32 startyear, [Optional] Int32 endyear)
         {
             ServiceAgent agent = null;
+            SSServiceAgent SSagent = null;
+
+            IDictionary<String,string> storedAttributes;
             try
             {
                 if (string.IsNullOrEmpty(regioncode) || string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest { ResponseResource = "region code or workspaceID cannot be empty" };
@@ -107,9 +110,20 @@ namespace SStats.Handlers
                 JToken wuCode = JsonConvert.DeserializeObject<JToken>(ConfigurationManager.AppSettings["WaterUseRegions"])[regioncode.ToUpper()];
                  if (wuCode == null) return new OperationResult.BadRequest { ResponseResource = "invalid region code" };
 
+                 SSagent = new SSServiceAgent(workspaceID);
+                 if (!String.IsNullOrEmpty(wuCode["attr"].ToString()))
+                 {
+                     storedAttributes = SSagent.GetAttributes(wuCode["attr"].ToString());
+                     if (!storedAttributes.ContainsKey(wuCode["attr"].ToString()))
+                         SSagent.GetFlowStatistics(regioncode, "MeanPercentFlow");
+                 }//end if
+
+                //get watershed
+                 WiM.Resources.Spatial.EsriFeatureRecordSet feature = SSagent.GetFeatures("globalwatershed", 4326)[0].feature as WiM.Resources.Spatial.EsriFeatureRecordSet;
+
                 agent = new ServiceAgent(ConfigurationManager.AppSettings["WaterUseServer"]);               
 
-                return new OperationResult.OK { ResponseResource = agent.GetWaterUse(wuCode["name"].ToString(), workspaceID, startyear, endyear) };
+                return new OperationResult.OK { ResponseResource = agent.GetWaterUse(wuCode["name"].ToString(), feature, startyear, endyear) };
             }
             catch (Exception ex)
             {
