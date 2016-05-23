@@ -75,13 +75,23 @@ class Features(object):
             else:
                 for f in map(lambda s: s.strip(), featurelist.split(';')):
                     if f.lower() in self.FeaturesList:
-                        self.Features.append({
+                        if f.lower() == "globalwatershed":
+                            expression = arcpy.AddFieldDelimiters(f, "GlobalWshd") + " = 1"
+                            gwcopied = arcpy.FeatureClassToFeatureClass_conversion(f, arcpy.Describe(f).path, f+"copied", expression)
+                            self.Features.append({
+                                                "name" : f,                                  
+                                                "feature": self.__simplify__(gwcopied,crs, simplificationType)
+                                              })
+                        else:
+                            self.Features.append({
                                                 "name" : f,                                  
                                                 "feature": self.__simplify__(f,crs, simplificationType)
                                               })
         except:
             tb = traceback.format_exc()
             self.__sm__("Failed to include feature " + tb,"ERROR") 
+        finally:
+            if gwcopied != None: arcpy.Delete_management(gwcopied)  
    
     #endregion  
       
@@ -200,6 +210,18 @@ class Features(object):
         except:
             return -1
 
+    def __copyandRemoveFeature__(self, polyFC, fieldName, whereclause):
+        try:
+            delimitedField = arcpy.AddFieldDelimiters(polyFC, "GlobalWshd")
+            expression = delimitedField + " = 1"
+            coppiedFC = arcpy.FeatureClassToFeatureClass_conversion(polyFC, arcpy.Describe(polyFC).path, polyFC+"copied", expression)
+          
+
+            return coppiedFC
+        except:
+            tb = traceback.format_exc()
+            return null
+
     def __sm__(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
@@ -216,9 +238,9 @@ class FeaturesWrapper(object):
     def __init__(self):
         try:
             parser = argparse.ArgumentParser()
-            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="IA20150824142145687000")
+            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="CO20160523080051087000")
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")              
-            parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"")
+            parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"globalwatershed")
             parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)
             parser.add_argument("-outputcrs", help="specifies the output projection to use",type=int, default=4326)             
             args = parser.parse_args()
