@@ -240,7 +240,7 @@ class FeaturesWrapper(object):
             parser = argparse.ArgumentParser()
             parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="CO20160523080051087000")
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")              
-            parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"globalwatershed")
+            parser.add_argument("-includefeatures", help="specifies the features", type=str, default = r"")
             parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)
             parser.add_argument("-outputcrs", help="specifies the output projection to use",type=int, default=4326)             
             args = parser.parse_args()
