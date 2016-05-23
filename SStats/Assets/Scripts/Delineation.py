@@ -119,7 +119,7 @@ class Delineation(object):
     def __removePolygonHoles__(self, polyFC, path):
         try:
 
-            result = arcpy.EliminatePolygonPart_management(polyFC, os.path.join(path,"GlobalWatershed"), "AREA_OR_PERCENT", "90 squaremeters", 1, "CONTAINED_ONLY")
+            result = arcpy.EliminatePolygonPart_management(polyFC, os.path.join(path,"GlobalWatershed"), "AREA_OR_PERCENT", "90 squaremeters", 1, "ANY")
 
             self.__sm__(arcpy.GetMessages())
             return result
