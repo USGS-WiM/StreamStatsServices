@@ -106,7 +106,6 @@
   <ItemGroup>
     <Content Include="Assets\Scripts\AttributesFromWorkspace.py" />
     <Content Include="Assets\Scripts\BasinParameters.py" />
-    <Content Include="Assets\Scripts\FeaturesTest.py" />
     <Content Include="Assets\Scripts\Features.py" />
     <Content Include="Assets\Scripts\Delineation.py" />
     <Content Include="Assets\Scripts\DelineationTest.py" />
