@@ -65,7 +65,7 @@ class Features(object):
     #region Methods   
    
     def GetFeatures(self, featurelist='', crs = 4326, simplificationType=1):
-        
+        gwcopied = None
         try:
             if featurelist == '':
                 for fname in self.FeaturesList:
