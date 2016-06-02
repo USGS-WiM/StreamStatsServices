@@ -16,6 +16,11 @@ bld/
 [Bb]in/
 [Oo]bj/
 
+# include dist
+![Dd]ist/*
+![Dd]ist/[Bb]in/*
+![Dd]ist/[Bb]in/*.dll
+
 # Roslyn cache directories
 *.ide/
 
