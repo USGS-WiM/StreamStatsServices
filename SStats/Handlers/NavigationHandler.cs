@@ -39,20 +39,18 @@ namespace SStats.Handlers
     public class NavigationHandler
     {
         [HttpOperation(HttpMethod.GET)]
-        public OperationResult Get(string workspaceID, [Optional] string featureList, [Optional] String simplificationOption)
+        public OperationResult Get(String regioncode, Int32 navmethod, string startpoint, Int32 espg, [Optional] string endpoint, [Optional] String workspaceID)
         {
             List<FeatureWrapper> result = null;
             SSServiceAgent agent = null;
             try
             {
-                if (string.IsNullOrEmpty(featureList)) featureList = string.Empty;
-                  //1 = full, 2 = simplified
-                Int32 simplifyID = includeMethod(ref simplificationOption) ? 2 : 1;
+                if (string.IsNullOrEmpty(regioncode) || string.IsNullOrEmpty(startpoint) || espg < 0) throw new BadRequestException("rcode, startpoint or espg are required and maybe invalid");
+                //  //1 = FindNetworkPath, 2 = FlowPathTrace
+                Int32 navCode = (navmethod < 1 || navmethod > 2) ? 1 : navmethod;
 
-                agent = new SSServiceAgent(workspaceID);
-                result = agent.GetFeatures(featureList, simplifyID);
-
-                
+                agent = new SSServiceAgent();
+                result = agent.GetNavigationFeatures(regioncode, navCode, startpoint, espg, endpoint, workspaceID);                
 
                 return new OperationResult.OK { ResponseResource = new Features() { FeatureList = result, Messages = agent.Messages } };
             }
