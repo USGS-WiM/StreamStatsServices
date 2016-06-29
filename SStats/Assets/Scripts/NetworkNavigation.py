@@ -38,17 +38,18 @@ import xml.dom.minidom
 
 class NetworkNav(object):
     #region Constructor
-    def __init__(self, directory, rcode):
+    def __init__(self, directory, rcode,workspaceID):
         self.__xmlPath = r"D:\ss_apps\XML"
         self.__schemaPath = r"D:\ss_socs\ss_gp\schemas"
         self.__rccode = rcode
-        workspace = rcode + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')
-        self.__WorkspaceDirectory = self.__getDirectory(os.path.join(directory, workspace))
+        self.__globalWatershed = None
+        if (workspaceID != None): self.__globalWatershed = os.path.join(directory,workspaceID,workspaceID+".gdb","Layers","GlobalWatershed") 
+        
+        self.__WorkspaceDirectory = self.__getDirectory(os.path.join(directory, "NN_"+rcode + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')))
         self.__templatePath = os.path.join(self.__schemaPath,rcode + "_ss.gdb","Layers")
         self.Features = []
         self.Message =""
         self.IsInitialized=False
-
         self.__TempDirectory = os.path.join(self.__WorkspaceDirectory,"Temp")
         
         #set up logging
@@ -64,19 +65,25 @@ class NetworkNav(object):
     #endregion   
         
     #region Methods  
-    def Execute(self, pointlist, method, incrs = 4326, clipbasin=None):
+    def Execute(self, pointlist, method, incrs = 4326):
         sr = None
         pFC = None
         datasr = None
         pFCprojected = None
         result = None
         resultreprojected = None
+        drainID = None
         try:
             if pointlist == None: raise Exception('At least one point must be passed in.');    
-            self.__sm("pointList:"+str(pointlist) +" Method: "+ str(method)) 
-            self.__sm("Processing input points.")      
+            #self.__sm("pointList:"+ json.dumps(result=[e.serialize() for e in pointlist]) +" Method: "+ str(method)) 
+            
+            if self.__workspaceExists(self.__globalWatershed):
+                drainID = self.__getFeatureValue("DrainID")
+
+
+            self.__sm("Processing input points.")   
             sr = arcpy.SpatialReference(int(incrs))
-            pFC = self.__JsonToFeature(pointlist,sr)
+            pFC = self.__JsonToFeature(pointlist,sr,"", drainID)
 
             self.__sm("Loading Template workspace and reprojecting to match workspace.")
             datasr = arcpy.Describe(self.__templatePath).spatialReference
@@ -91,17 +98,43 @@ class NetworkNav(object):
             arcpy.CheckOutExtension("Spatial")
             self.__sm("Started computations")
             if method == 1:
-                #ArcHydroTools.StreamstatsFindNetworkPath('GlobalWatershedPoint','HYDRO_NET',r'D:\documents\WiM\Documents\Projects\WiM\StreamStats\NetworkTrace\RRB.gdb\Layers\FindNetworkPath1',r'D:\ss_apps\XML\StreamStatsRRB.xml')
-                
-                result = ArcHydroTools.StreamstatsFindNetworkPath(pFCprojected,'HYDRO_NET',os.path.join(featurePath,'FindNetworkPathFC'),xmlPath)
-                resultreprojected = self.__toProjection(result,sr)
+                self.__sm("Selecting find network path") 
+                result = ArcHydroTools.StreamstatsFindNetworkPath(pFCprojected,'HYDRO_NET',os.path.join(featurePath,'networkpath'),xmlPath)
+                self.__sm(arcpy.GetMessages(),'AHMSG')
                 self.Features.append({
                                     "name" : "networkpath",                                  
-                                    "feature": self.__ToJSON(resultreprojected)
+                                    "feature": self.__ToJSON(self.__toProjection(result,sr))
                                     })
                 
             elif method == 2:
-                result = ArcHydroTools.StreamstatsFlowPathTrace(pFCprojected,"FlowPathTrace",None, xmlPath)           
+                self.__sm("Selecting Flow Path Trace") 
+                result = ArcHydroTools.StreamstatsFlowPathTrace(pFCprojected,os.path.join(featurePath,'raindroptrace'),self.__globalWatershed, xmlPath)  
+                self.__sm(arcpy.GetMessages(),'AHMSG')
+                self.Features.append({
+                                    "name" : "raindroptrace",                                  
+                                    "feature": self.__ToJSON(self.__toProjection(result,sr))
+                                    })   
+            elif method == 3:
+                self.__sm("Selecting Trace to network") 
+                networktraceds = os.path.join(featurePath,'networktrace')
+                pathtonetwork = os.path.join(featurePath,'pathtonetwork')
+                intersectpoint = os.path.join(featurePath,'intersectpoint')
+                ArcHydroTools.StreamstatsTracetoNetwork(pFCprojected,'HYDRO_NET',networktraceds,pathtonetwork,intersectpoint, xmlPath)  
+                self.__sm(arcpy.GetMessages(),'AHMSG')  
+                self.Features.append({
+                                    "name" : "networktrace",                                  
+                                    "feature": self.__ToJSON(self.__toProjection(networktraceds,sr))
+                                    })
+                self.Features.append({
+                                    "name" : "pathtonetwork",                                  
+                                    "feature": self.__ToJSON(self.__toProjection(pathtonetwork,sr))
+                                    }) 
+                self.Features.append({
+                                    "name" : "intersectpoint",                                  
+                                    "feature": self.__ToJSON(self.__toProjection(intersectpoint,sr))
+                                    })  
+            else:
+                return false  
 
             return True          
         except:
@@ -114,9 +147,7 @@ class NetworkNav(object):
             pFC = None
             datasr = None
             pFCprojected = None
-            result = None
-            resultreprojected = None
-            
+            result = None            
     #endregion  
       
     #region Helper Methods
@@ -136,7 +167,7 @@ class NetworkNav(object):
             x = arcpy.GetMessages()
             return subDirectory
 
-    def __JsonToFeature(self, pptArray, spatialRef, fcpath = ''):
+    def __JsonToFeature(self, pptArray, spatialRef, fcpath = '', drainAttr=None):
         rows = None
         FC = None
         try:
@@ -155,6 +186,7 @@ class NetworkNav(object):
             arcpy.AddField_management(FC, "BatchDone", "SHORT")
             arcpy.AddField_management(FC, "SnapOn", "SHORT")
             arcpy.AddField_management(FC, "SrcType", "SHORT")
+            if drainAttr: arcpy.AddField_management(FC, "DrainID", "LONG")
             # Create insert cursor for table
             for item in pptArray:
                 rows = arcpy.InsertCursor(FC)            
@@ -170,7 +202,7 @@ class NetworkNav(object):
                 row.setValue("BatchDone", 0)
                 row.setValue("SnapOn", 1)
                 row.setValue("SrcType", item.srctype)
-
+                if drainAttr: row.setValue("DrainID", drainAttr)
                 rows.insertRow(row)
 
             return FC
@@ -183,6 +215,7 @@ class NetworkNav(object):
             del rows
 
     def __workspaceExists(self, workspace):
+         if workspace == None: return False
          return arcpy.Exists(workspace)
 
     def __getFeaturesList(self):
@@ -257,7 +290,21 @@ class NetworkNav(object):
             if file != None and not file.closed: 
                 file.close 
                 file = None
-
+    def __getFeatureValue(self, fieldName):
+        try:           
+            #open feature/ loop through and add to array
+            self.__sm("Opening search cursor")
+            with arcpy.da.SearchCursor(self.__globalWatershed,fieldName,"GlobalWshd = 1") as cursor:
+                for row in cursor: 
+                    #should only be 1
+                    val = row[0]
+                    return val
+                #next row
+            #end with
+        except:
+            tb = traceback.format_exc()
+            self.__sm("Featurelist Error "+tb,"ERROR")
+            return None
     def __sm(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
@@ -273,28 +320,26 @@ class NetworkNavWrapper(object):
     #region Constructor
     def __init__(self):
         try:
+            #http://stackoverflow.com/questions/8107713/using-argparse-argumenterror-in-python
             parser = argparse.ArgumentParser()
             parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default=None)
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")  
             parser.add_argument("-rcode", help="specifies the abbr state name", type=str, default="RRB")          
-            parser.add_argument("-method", help="specifies the method 1 = find network path", type=int, choices=[1], default = 1)
-            parser.add_argument("-startpoint", help="specifies the array of point", type=json.loads, 
-                                default = '[-94.311504,48.443681]') 
-            parser.add_argument("-endpoint", help="specifies the array of point", type=json.loads, 
-                                default = '')  
-            parser.add_argument("-inputcrs", help="specifies the input projection use",type=int, default=4326)
-                        
+            parser.add_argument("-method", help="specifies the method 1 = find network path", type=int, choices=[1,2,3], default = 3)
+            parser.add_argument("-startpoint", help="specifies the array of point", type=json.loads, default = '[-94.719923,48.47219]') 
+            parser.add_argument("-endpoint", help="specifies the array of point", type=json.loads, default = None)  
+            parser.add_argument("-inputcrs", help="specifies the input projection use",type=int, default=4326)                        
             args = parser.parse_args()
 
             pointArray = []
-            pointArray.append(NavPoint("startpoint",1,args.startpoint ))
+            pointArray.append(NavPoint("startpoint",1,args.startpoint))
             optionalEndpoint = args.endpoint
             if(optionalEndpoint != None):pointArray.append(NavPoint("endpoint",0,optionalEndpoint )) 
             
-            networkNav = NetworkNav(args.directory, args.rcode)
+            networkNav = NetworkNav(args.directory, args.rcode, args.workspaceID)
 
             if(networkNav.IsInitialized):
-                if(networkNav.Execute(pointArray, args.method, args.inputcrs, args.workspaceID)):
+                if(networkNav.Execute(pointArray, args.method, args.inputcrs)):
             
                     Results = {
                                "Features":networkNav.Features,
@@ -308,10 +353,19 @@ class NetworkNavWrapper(object):
         except:
              tb = traceback.format_exc()
              Results = {
-                       "error": {"message": traceback.format_exc()}
+                       "error": {"message": traceback.format_exc() + str(parser.error)}
                        }
         finally:
-            print "Results="+json.dumps(Results) 
+            print "Results="+json.dumps(Results)             
+            #arcpy.Delete_management(self.__WorkspaceDirectory)
+    def validJson (self, string ):
+        value = string
+        if value is not None and value != '':
+            print value
+            return json.loads
+        else:
+            print "json point is None"
+            return None
   
 class NavPoint:
     def __init__(self, name, stype, pnt):

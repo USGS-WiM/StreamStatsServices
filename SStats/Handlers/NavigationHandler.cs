@@ -47,7 +47,7 @@ namespace SStats.Handlers
             {
                 if (string.IsNullOrEmpty(regioncode) || string.IsNullOrEmpty(startpoint) || espg < 0) throw new BadRequestException("rcode, startpoint or espg are required and maybe invalid");
                 //  //1 = FindNetworkPath, 2 = FlowPathTrace
-                Int32 navCode = (navmethod < 1 || navmethod > 2) ? 1 : navmethod;
+                Int32 navCode = (navmethod < 1 || navmethod > 3) ? 2 : navmethod;
 
                 agent = new SSServiceAgent();
                 result = agent.GetNavigationFeatures(regioncode, navCode, startpoint, espg, endpoint, workspaceID);                

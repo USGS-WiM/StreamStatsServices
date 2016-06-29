@@ -152,7 +152,7 @@ namespace SStats
         private void addNetworkNavigationResource()
         {
             ResourceSpace.Has.ResourcesOfType<Features>()
-             .AtUri("/navigation?rcode={regioncode}&method={navmethod}&startpoint={startpoint}&endpoint={endpoint}&crs={espg}&workspaceID={workspaceID}").Named("GetNavigation")
+             .AtUri("/navigation/{navmethod}?rcode={regioncode}&startpoint={startpoint}&endpoint={endpoint}&crs={espg}&workspaceID={workspaceID}").Named("GetNavigation")
              .HandledBy<NavigationHandler>()
              .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
              .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")

@@ -283,6 +283,11 @@ namespace SStats.Utilities.ServiceAgent
             try
             {
                 if (string.IsNullOrEmpty(regioncode)) throw new Exception("rcode string must not be null");
+                if (!string.IsNullOrEmpty(workspaceID))
+                {
+                    this.WorkspaceString = workspaceID;
+                    if (!isWorkspaceValid(RepositoryDirectory)) throw new DirectoryNotFoundException("Workspace not found.");
+                }
 
                 result = Execute(getProcessRequest(getProcessName(processType.e_navigation), getBody(regioncode,navCode,startpoint,endpoint,espg,workspaceID))) as JObject;
                 if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
@@ -290,9 +295,9 @@ namespace SStats.Utilities.ServiceAgent
                                 
                 return this._featureResultList.Select(x => x.Value).ToList();
             }
-            catch (Exception)
+            catch (Exception ex)
             {
-
+                sm("Navigation Error " + ex.Message);
                 throw;
             }
         
@@ -607,7 +612,7 @@ namespace SStats.Utilities.ServiceAgent
                 body.Add("-method " + methodID);
                 body.Add("-startpoint " + startpoint);
                 if (!string.IsNullOrEmpty(endpoint))
-                body.Add("-endpoint " + endpoint);
+                    body.Add("-endpoint " + endpoint);
                 body.Add("-inputcrs " + crsCode);
                 if (!string.IsNullOrEmpty(workspaceID))
                     body.Add("-workspaceID " + workspaceID);
