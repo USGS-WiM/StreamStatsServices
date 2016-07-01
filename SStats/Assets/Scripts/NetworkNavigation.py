@@ -45,12 +45,13 @@ class NetworkNav(object):
         self.__globalWatershed = None
         if (workspaceID != None): self.__globalWatershed = os.path.join(directory,workspaceID,workspaceID+".gdb","Layers","GlobalWatershed") 
         
-        self.__WorkspaceDirectory = self.__getDirectory(os.path.join(directory, "NN_"+rcode + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')))
+        self.WorkspaceDirectory = self.__getDirectory(os.path.join(directory, "NN_"+rcode + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')))
         self.__templatePath = os.path.join(self.__schemaPath,rcode + "_ss.gdb","Layers")
         self.Features = []
+        self.NHDTraceReport=""
         self.Message =""
         self.IsInitialized=False
-        self.__TempDirectory = os.path.join(self.__WorkspaceDirectory,"Temp")
+        self.__TempDirectory = os.path.join(self.WorkspaceDirectory,"Temp")
         
         #set up logging
         logdir = os.path.join(self.__TempDirectory, 'NetworkNavigation.log')
@@ -63,9 +64,11 @@ class NetworkNav(object):
         self.IsInitialized = True
         self.__sm("Initialized for "+str(rcode))                 
     #endregion   
-        
+    def dispose(self):
+        arcpy.Delete_management(self.__TempDirectory)
+        arcpy.Delete_management(self.WorkspaceDirectory) 
     #region Methods  
-    def Execute(self, pointlist, method, incrs = 4326):
+    def Execute(self, pointlist, method, incrs = 4326, traceDirectionOption=None, traceLayersOption=None):
         sr = None
         pFC = None
         datasr = None
@@ -133,6 +136,16 @@ class NetworkNav(object):
                                     "name" : "intersectpoint",                                  
                                     "feature": self.__ToJSON(self.__toProjection(intersectpoint,sr))
                                     })  
+            elif method == 4:
+                self.__sm("Selecting NHD Trace") 
+                #get optional trace methods
+                direction = traceDirectionOption if traceDirectionOption != None else "Both"
+                layers = traceLayersOption if traceLayersOption != None else "NHDFlowline"
+                result = ArcHydroTools.StreamstatsDoNHDTrace(pFCprojected,'HYDRO_NET',direction,layers,os.path.join(self.__TempDirectory,"nhdsearch.htm"), xmlPath)  
+                self.__sm(arcpy.GetMessages(),'AHMSG')
+                with open(os.path.join(self.__TempDirectory,"nhdsearch.htm")) as f:
+                          self.NHDTraceReport = f.read()
+                
             else:
                 return false  
 
@@ -319,16 +332,19 @@ class NetworkNav(object):
 class NetworkNavWrapper(object):
     #region Constructor
     def __init__(self):
+        dodelete = False
         try:
             #http://stackoverflow.com/questions/8107713/using-argparse-argumenterror-in-python
             parser = argparse.ArgumentParser()
             parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default=None)
             parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")  
             parser.add_argument("-rcode", help="specifies the abbr state name", type=str, default="RRB")          
-            parser.add_argument("-method", help="specifies the method 1 = find network path", type=int, choices=[1,2,3], default = 3)
+            parser.add_argument("-method", help="specifies the method 1 = find network path", type=int, choices=[1,2,3,4], default = 2)
             parser.add_argument("-startpoint", help="specifies the array of point", type=json.loads, default = '[-94.719923,48.47219]') 
             parser.add_argument("-endpoint", help="specifies the array of point", type=json.loads, default = None)  
-            parser.add_argument("-inputcrs", help="specifies the input projection use",type=int, default=4326)                        
+            parser.add_argument("-inputcrs", help="specifies the input projection use",type=int, default=4326)    
+            parser.add_argument("-tracedirection", help="specifies Navigation Options",type=str, default=None)   
+            parser.add_argument("-tracelayers", help="specifies Navigation Options",type=str, default=None)                 
             args = parser.parse_args()
 
             pointArray = []
@@ -337,41 +353,52 @@ class NetworkNavWrapper(object):
             if(optionalEndpoint != None):pointArray.append(NavPoint("endpoint",0,optionalEndpoint )) 
             
             networkNav = NetworkNav(args.directory, args.rcode, args.workspaceID)
-
             if(networkNav.IsInitialized):
-                if(networkNav.Execute(pointArray, args.method, args.inputcrs)):
-            
+                if(networkNav.Execute(pointArray, args.method, args.inputcrs, args.tracedirection, args.tracelayers)):
+                    
                     Results = {
                                "Features":networkNav.Features,
+                               "NHDTraceReport":networkNav.NHDTraceReport,
                                "Message": networkNav.Message.replace("'",'"').replace('\n',' ')
                               }
                 else:
                     Results = {
                        "error": {"message": "Failed to execute." + networkNav.Message}
                        }
-
+            #Only dispose if successful
+            doDelete= True
         except:
              tb = traceback.format_exc()
              Results = {
                        "error": {"message": traceback.format_exc() + str(parser.error)}
                        }
         finally:
-            print "Results="+json.dumps(Results)             
-            #arcpy.Delete_management(self.__WorkspaceDirectory)
+            print "Results="+json.dumps(Results)
+            if doDelete: networkNav.dispose()
+            
+            
     def validJson (self, string ):
         value = string
-        if value is not None and value != '':
-            print value
-            return json.loads
-        else:
-            print "json point is None"
-            return None
+        try:
+            if value is not None and value != '':
+                print value
+                return json.loads(value)
+            else:
+                print "json point is None"
+                return None
+        except:
+             tb = traceback.format_exc()
+             print tb
   
 class NavPoint:
     def __init__(self, name, stype, pnt):
         self.name = name
         self.srctype = stype
         self.point = pnt
+class NavOptions:
+    def __init__(self, name, value):
+        self.name = name
+        self.value = value
                      
 if __name__ == '__main__':
     NetworkNavWrapper()
