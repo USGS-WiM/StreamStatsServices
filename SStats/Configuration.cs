@@ -151,8 +151,8 @@ namespace SStats
         }
         private void addNetworkNavigationResource()
         {
-            ResourceSpace.Has.ResourcesOfType<Features>()
-             .AtUri("/navigation/{navmethod}?rcode={regioncode}&startpoint={startpoint}&endpoint={endpoint}&crs={espg}&workspaceID={workspaceID}").Named("GetNavigation")
+            ResourceSpace.Has.ResourcesOfType<NHDTrace>()
+             .AtUri("/navigation/{navmethod}?rcode={regioncode}&startpoint={startpoint}&endpoint={endpoint}&crs={espg}&workspaceID={workspaceID}&direction={traceDirection}&layers={traceLayers}").Named("GetNavigation")
              .HandledBy<NavigationHandler>()
              .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
              .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")

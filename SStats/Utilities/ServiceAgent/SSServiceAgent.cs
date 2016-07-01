@@ -277,9 +277,11 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }
-        public List<FeatureWrapper>GetNavigationFeatures(string regioncode, Int32 navCode, string startpoint, Int32 espg, string endpoint, string workspaceID){
+        public NHDTrace GetNavigationFeatures(string regioncode, Int32 navCode, string startpoint, Int32 espg, string endpoint, 
+                                                            string workspaceID, string traceDirection,string traceLayers){
             JObject result;
             string msg;
+            string report = string.Empty;
             try
             {
                 if (string.IsNullOrEmpty(regioncode)) throw new Exception("rcode string must not be null");
@@ -289,11 +291,14 @@ namespace SStats.Utilities.ServiceAgent
                     if (!isWorkspaceValid(RepositoryDirectory)) throw new DirectoryNotFoundException("Workspace not found.");
                 }
 
-                result = Execute(getProcessRequest(getProcessName(processType.e_navigation), getBody(regioncode,navCode,startpoint,endpoint,espg,workspaceID))) as JObject;
+                result = Execute(getProcessRequest(getProcessName(processType.e_navigation), getBody(regioncode,navCode,startpoint,endpoint,espg,workspaceID,traceDirection,traceLayers))) as JObject;
                 if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
                 parseFeatures(result);
-                                
-                return this._featureResultList.Select(x => x.Value).ToList();
+                var reportProperty = result.Property("NHDTraceReport");
+                if (reportProperty != null)
+                    report = result.Value<string>("NHDTraceReport");
+
+                return new NHDTrace() { FeatureList = this._featureResultList.Select(x => x.Value).ToList(), Report = report, Messages= this.Messages };
             }
             catch (Exception ex)
             {
@@ -602,7 +607,7 @@ namespace SStats.Utilities.ServiceAgent
 
         #region Navigation Feature Helper Methods
 
-        private string getBody(string rcode, Int32 methodID, string startpoint, string endpoint, int crsCode, string workspaceID)
+        private string getBody(string rcode, Int32 methodID, string startpoint, string endpoint, int crsCode, string workspaceID, string traceDirection, string traceLayers)
         {
             List<string> body = new List<string>();
             try
@@ -616,6 +621,11 @@ namespace SStats.Utilities.ServiceAgent
                 body.Add("-inputcrs " + crsCode);
                 if (!string.IsNullOrEmpty(workspaceID))
                     body.Add("-workspaceID " + workspaceID);
+                if (methodID == 4)
+                {
+                    body.Add("-tracedirection " + traceDirection);
+                    body.Add("-tracelayers " + traceLayers);
+                }                    
 
                 return string.Join(" ", body);
             }
