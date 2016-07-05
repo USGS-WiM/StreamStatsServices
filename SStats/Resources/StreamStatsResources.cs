@@ -63,6 +63,22 @@ namespace SStats.Resources
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
     }
+    [XmlInclude(typeof(EsriFeatureRecordSet))]
+    [XmlRoot("features")]
+    public class NHDTrace
+    {
+        [JsonProperty("featurecollection")]
+        [XmlArray("featurecollection")]
+        [XmlArrayItem("feature")]
+        public List<FeatureWrapper> FeatureList { get; set; }
+
+        public string Report { get; set; }
+
+        [JsonProperty("messages")]
+        [XmlArray("messages")]
+        [XmlArrayItem("message")]
+        public List<String> Messages { get; set; }
+    }
 
     [XmlRoot("parameters")]
     public class Parameters

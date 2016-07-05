@@ -277,6 +277,36 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }
+        public NHDTrace GetNavigationFeatures(string regioncode, Int32 navCode, string startpoint, Int32 espg, string endpoint, 
+                                                            string workspaceID, string traceDirection,string traceLayers){
+            JObject result;
+            string msg;
+            string report = string.Empty;
+            try
+            {
+                if (string.IsNullOrEmpty(regioncode)) throw new Exception("rcode string must not be null");
+                if (!string.IsNullOrEmpty(workspaceID))
+                {
+                    this.WorkspaceString = workspaceID;
+                    if (!isWorkspaceValid(RepositoryDirectory)) throw new DirectoryNotFoundException("Workspace not found.");
+                }
+
+                result = Execute(getProcessRequest(getProcessName(processType.e_navigation), getBody(regioncode,navCode,startpoint,endpoint,espg,workspaceID,traceDirection,traceLayers))) as JObject;
+                if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
+                parseFeatures(result);
+                var reportProperty = result.Property("NHDTraceReport");
+                if (reportProperty != null)
+                    report = result.Value<string>("NHDTraceReport");
+
+                return new NHDTrace() { FeatureList = this._featureResultList.Select(x => x.Value).ToList(), Report = report, Messages= this.Messages };
+            }
+            catch (Exception ex)
+            {
+                sm("Navigation Error " + ex.Message);
+                throw;
+            }
+        
+        }
         #endregion
 
         #region Watershed Helper Methods
@@ -490,7 +520,9 @@ namespace SStats.Utilities.ServiceAgent
             List<string> featurelist = new List<string>();
             try
             {
-                this.WorkspaceString = jobj.Value<string>("Workspace");
+                var workspaceProperty = jobj.Property("Workspace");
+                if(workspaceProperty != null)
+                    this.WorkspaceString = jobj.Value<string>("Workspace");
                 this.sm(jobj.Value<string>("Message").
                     Split(delimiterChars, StringSplitOptions.RemoveEmptyEntries).Where(msg => msg.Contains("AHMSG:"))
                                                                                 .Select(msg => msg.Substring((msg.IndexOf("Start Time:")) > 0 ? msg.IndexOf("Start Time:") : 0)).ToList());
@@ -571,6 +603,37 @@ namespace SStats.Utilities.ServiceAgent
             }//end try
         }
 
+        #endregion
+
+        #region Navigation Feature Helper Methods
+
+        private string getBody(string rcode, Int32 methodID, string startpoint, string endpoint, int crsCode, string workspaceID, string traceDirection, string traceLayers)
+        {
+            List<string> body = new List<string>();
+            try
+            {
+                body.Add("-directory " + RepositoryDirectory);
+                body.Add("-rcode " + rcode);
+                body.Add("-method " + methodID);
+                body.Add("-startpoint " + startpoint);
+                if (!string.IsNullOrEmpty(endpoint))
+                    body.Add("-endpoint " + endpoint);
+                body.Add("-inputcrs " + crsCode);
+                if (!string.IsNullOrEmpty(workspaceID))
+                    body.Add("-workspaceID " + workspaceID);
+                if (methodID == 4)
+                {
+                    body.Add("-tracedirection " + traceDirection);
+                    body.Add("-tracelayers " + traceLayers);
+                }                    
+
+                return string.Join(" ", body);
+            }
+            catch (Exception)
+            {
+                throw;
+            }
+        }
         #endregion
 
         #region Other Helper Methods
@@ -689,6 +752,9 @@ namespace SStats.Utilities.ServiceAgent
                 case processType.e_attributes:
                     uri = ConfigurationManager.AppSettings["Attributes"];
                     break;
+                case processType.e_navigation:
+                    uri = ConfigurationManager.AppSettings["Navigation"];
+                    break;
             }
 
             return uri;
@@ -733,7 +799,8 @@ namespace SStats.Utilities.ServiceAgent
             e_flowstats,
             e_features,
             e_editwatershed,
-            e_attributes
+            e_attributes,
+            e_navigation
 
         }
 
