@@ -67,6 +67,7 @@ namespace SStats
                 addFeatureResource();
                 addParameterGroupResource();
                 addWaterUseResource();
+                addNetworkNavigationResource();
 
                 ResourceSpace.Has.ResourcesOfType<string>()
                 .WithoutUri.AsJsonDataContract();
@@ -147,6 +148,15 @@ namespace SStats
             .And.AtUri("/wateruse?rcode={regioncode}&workspaceID={workspaceID}&startyear={startyear}&endyear={endyear}")
             .HandledBy<WaterUseHandler>()
             .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
+        }
+        private void addNetworkNavigationResource()
+        {
+            ResourceSpace.Has.ResourcesOfType<NHDTrace>()
+             .AtUri("/navigation/{navmethod}?rcode={regioncode}&startpoint={startpoint}&endpoint={endpoint}&crs={espg}&workspaceID={workspaceID}&direction={traceDirection}&layers={traceLayers}").Named("GetNavigation")
+             .HandledBy<NavigationHandler>()
+             .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
+             .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
+             .And.TranscodedBy<SSGeoJsonDotNetCodec>(null).ForMediaType("application/geojson;q=0.9").ForExtension("geojson");
         }
         #endregion
     }//end Configuration
