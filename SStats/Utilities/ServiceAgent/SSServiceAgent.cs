@@ -291,6 +291,9 @@ namespace SStats.Utilities.ServiceAgent
                     if (!isWorkspaceValid(RepositoryDirectory)) throw new DirectoryNotFoundException("Workspace not found.");
                 }
 
+                if (navCode == 3) navCode = 4;
+                else if(navCode ==2 && string.IsNullOrEmpty(workspaceID)) navCode = 3;
+
                 result = Execute(getProcessRequest(getProcessName(processType.e_navigation), getBody(regioncode,navCode,startpoint,endpoint,espg,workspaceID,traceDirection,traceLayers))) as JObject;
                 if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
                 parseFeatures(result);
