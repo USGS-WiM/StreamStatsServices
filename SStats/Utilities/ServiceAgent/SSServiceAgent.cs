@@ -129,31 +129,33 @@ namespace SStats.Utilities.ServiceAgent
         }
         public List<Parameter> GetRegionAvailableParameters(string state, string group = "")
         {
-            postgresqldbOps db = null;
+            dbOps db = null;
             SSXMLAgent xml = null;
-            //List<Parameter> dbParameterList;
-            List<Parameter> regionParameterList;
+            List<Param> regionParameterList;
             List<string> groupCodes;
             try
             {
                 //returns name, code for selected region
                 xml = new SSXMLAgent(state);
-                regionParameterList = xml.GetRegionParameters();
+                List<string> regionParameters = xml.GetRegionParameters();
+                sm("xmlcount:" + regionParameters.Count());
                 this.sm(xml.Messages);
 
-                db = new postgresqldbOps(ConfigurationManager.AppSettings["SSDBConnectionString"]);
-                groupCodes = db.GetGroupCodes(state, group);
+                db = new dbOps(String.Format(ConfigurationManager.AppSettings["SSDBConnectionString"], "***REMOVED***"),dbOps.ConnectionType.e_mysql);
+                regionParameterList = db.GetDBItems<Param>(dbOps.SQLType.e_parameterlist, "'"+String.Join("','", regionParameters) +"'");
+                
+
+                groupCodes = GetGroupCodes(state, group);
 
                 if (groupCodes.Count > 0) { 
                     regionParameterList = regionParameterList.Where(a => groupCodes.Contains(a.code)).ToList();
                     sm("sync w/ group. Final Count:" + regionParameterList.Count);
                 }
 
-                db.LoadParameterList(regionParameterList);
                 this.sm(db.Messages);
 
 
-                return regionParameterList;
+                return regionParameterList.ToList<Parameter>();
             }
             catch (Exception ex)
             {
@@ -164,6 +166,13 @@ namespace SStats.Utilities.ServiceAgent
                 if (db != null) db.Dispose();
             }
         }//end Get
+
+        private List<string> GetGroupCodes(string state, string group)
+        {
+            return new List<string>();
+            //throw new NotImplementedException();
+        }
+
         public List<String> GetRegionAvailableGroups(string rcode)
         {
             postgresqldbOps db = null;

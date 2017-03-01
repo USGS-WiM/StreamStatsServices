@@ -124,12 +124,12 @@ namespace SStats.Utilities.ServiceAgent
                 xml = new SSXMLAgent(state);
 
                 //returns all code units and description
-                
+
                 //returns name, code for selected region
-                regionParameterList = xml.GetRegionParameters();
-                db.LoadParameterList(regionParameterList); 
-                
-                return regionParameterList;
+                // regionParameterList = xml.GetRegionParameters();
+                //db.LoadParameterList(regionParameterList); 
+
+                return null; //regionParameterList;
             }
             catch (Exception ex)
             {
@@ -320,7 +320,7 @@ namespace SStats.Utilities.ServiceAgent
 
                     selectedParam = paramList.FirstOrDefault(p => string.Equals(p.code, xmlReader.GetAttribute("name"), StringComparison.OrdinalIgnoreCase));
                     selectedParam.value = Convert.ToDouble(xmlReader.GetAttribute("value"));
-                   
+
                 }//end if
             }//next
             return paramList;
