@@ -140,6 +140,7 @@
     <Compile Include="Handlers\FeatureHandler.cs" />
     <Compile Include="Handlers\WatershedHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Resources\Parameter.cs" />
     <Compile Include="Resources\StreamStatsResources.cs">
       <SubType>Code</SubType>
     </Compile>
