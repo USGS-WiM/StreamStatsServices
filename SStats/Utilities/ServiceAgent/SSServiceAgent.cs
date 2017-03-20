@@ -145,6 +145,7 @@ namespace SStats.Utilities.ServiceAgent
                 regionParameterList = db.GetDBItems<Param>(dbOps.SQLType.e_parameterlist, "'"+String.Join("','", regionParameters) +"'");
                 
 
+
                 groupCodes = GetGroupCodes(state, group);
 
                 if (groupCodes.Count > 0) { 
@@ -152,8 +153,9 @@ namespace SStats.Utilities.ServiceAgent
                     sm("sync w/ group. Final Count:" + regionParameterList.Count);
                 }
 
+                var diff = String.Join(",", regionParameters.Where(p => !regionParameterList.Select(s=>s.code).Contains(p)));
+                if(diff.Count()>0) this.sm("params in xml and not returned from DB: " + diff);
                 this.sm(db.Messages);
-
 
                 return regionParameterList.ToList<Parameter>();
             }
