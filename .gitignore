@@ -5,6 +5,10 @@
 *.suo
 *.user
 *.sln.docstates
+*.pyc
+
+# Visual Studio 2015 cache/options directory
+.vs/
 
 # Build results
 [Dd]ebug/
@@ -17,9 +21,10 @@ bld/
 [Oo]bj/
 
 # include dist
-![Dd]ist/*
-![Dd]ist/[Bb]in/*
-![Dd]ist/[Bb]in/*.dll
+!NSSServices/
+!NSSServices/[Dd]ist/*
+!NSSServices/[Dd]ist/[Bb]in/*
+!NSSServices/[Dd]ist/[Bb]in/*.dll
 
 # Roslyn cache directories
 *.ide/

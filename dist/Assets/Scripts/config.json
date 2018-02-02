@@ -1,0 +1,78 @@
+{
+  "workingdirectory": "D:\\ClientData",
+  "datadirectory": "D:\\WiM\\Projects\\StreamStats\\data\\stormwater",
+  "datasetNames": {
+    "basin": "Watershed",
+     "point": "WatershedPoint"
+  },
+  "maplayers": {
+    "fdr": {
+      "ID": 1001,
+      "Name": "fdr",
+      "Description": "Flow Direction Raster",
+      "isTiled": true,
+      "path": "archydro",
+      "DatasetType": "ESRI_RASTER",
+      "queryFeaturePath": "global.gdb\\hucpoly",
+      "queryField": "Name"
+    },
+    "strlnk": {
+      "ID": 1002,
+      "Name": "strlnk",
+      "Description": "Stream Link",
+      "isTiled": true,
+      "path": "archydro",
+      "DatasetType": "ESRI_RASTER",
+      "queryFeaturePath": "global.gdb\\hucpoly",
+      "queryField": "Name"
+    },
+    "HydroJunction": {
+      "ID": 1003,
+      "Name": "HydroJunction",
+      "Description": "HydroJunction",
+      "DatasetType": "FEATURE",
+      "isTiled": true,
+      "path": "archydro"
+    },
+    "Stream": {
+      "ID": 1004,
+      "Name": "Stream",
+      "Description": "Stream",
+      "DatasetType": "FEATURE",
+      "isTiled": true,
+      "path": "archydro"
+    },
+    "Pipe": {
+      "ID": 1005,
+      "Name": "Pipe",
+      "Description": "Pipe",
+      "DatasetType": "FEATURE",
+      "isTiled": true,
+      "path": "archydro"
+    },
+    "Catchment": {
+      "ID": 1006,
+      "Name": "Catchment",
+      "Description": "Catchment",
+      "DatasetType": "FEATURE",
+      "isTiled": true,
+      "path": "archydro"
+    },
+    "SinkWatershed": {
+      "ID": 1007,
+      "Name": "SinkWatershed",
+      "Description": "Input Sink Watershed features. Related to Junction through the HydroID/DrainID attributes, i.e. HydroID of Sink Watershed is stored in DrainID of associated Junction.",
+      "DatasetType": "FEATURE",
+      "isTiled": true,
+      "path": "archydro"
+    },
+    "AdjointCatchment": {
+      "ID": 1008,
+      "Name": "AdjointCatchment",
+      "Description": "AdjoinCatchment",
+      "DatasetType": "FEATURE",
+      "isTiled": true,
+      "path": "archydro"
+    }
+  }
+}

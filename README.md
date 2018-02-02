@@ -2,12 +2,12 @@
 
 # StreamStats Services
 
-StreamStats supporting REST web services
 
 ### Prerequisites
 
 [Visual Studio 2017](https://www.visualstudio.com/)
 
+[.NET Core](https://www.microsoft.com/net/core#windowscmd)
 
 ## Getting Started
 
@@ -17,16 +17,30 @@ These instructions will get you a copy of the project up and running on your loc
 
 https://help.github.com/articles/cloning-a-repository/
 
-Open the solution file (.sln) using perfered IDE.
+Open the solution file (.sln) using preferred IDE.
 
 ## Building and testing
 
 No testing files are currently available for this repository
 
+## Deployment on IIS
+
+see [link](https://docs.microsoft.com/en-us/aspnet/core/publishing/iis?tabs=aspnetcore2x)  for detailed instructions for deploying to windows server.
+
+* Download and install [windows server hosting bundle](https://www.microsoft.com/net/download/core#/runtime) on the server.
+* Create new application pool specifying the .netCLR version property to "No Managed Code".
+
+## Deployment on Linux
+
+see [link](https://docs.microsoft.com/en-us/aspnet/core/publishing/apache-proxy) for detailed instructions for deploying to linux server
+
+## Built With
+
+* [Dotnetcore 2.0](https://github.com/dotnet/core) - ASP.Net core Framework
 
 ## Contributing
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) for details on the process for submitting pull requests to us. Please read [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md) for details on adhering by the [USGS Code of Scientific Conduct](https://www2.usgs.gov/fsp/fsp_code_of_scientific_conduct.asp).
+Please read [CONTRIBUTING.md](./CONTRIBUTING.md) for details on the process for submitting pull requests to us. Please read [CODE_OF_CONDUCT.md](./CODE_OF_CONDUCT.md) for details on adhering by the [USGS Code of Scientific Conduct](https://www2.usgs.gov/fsp/fsp_code_of_scientific_conduct.asp).
 
 ## Versioning
 
@@ -54,6 +68,10 @@ In the spirit of open source, please cite any re-use of the source code stored i
 
 `This project contains code produced by the Web Informatics and Mapping (WIM) team at the United States Geological Survey (USGS). As a work of the United States Government, this project is in the public domain within the United States. https://wim.usgs.gov`
 
+## Acknowledgments
+
+* [Network-Linked Data Index](https://cida.usgs.gov/nldi/about)
+* [GeoJson.Net](https://github.com/GeoJSON-Net/GeoJSON.Net)
 
 ## About WIM
 

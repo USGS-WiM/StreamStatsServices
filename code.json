@@ -2,8 +2,8 @@
   {
     "name": "StreamStatsServices",
     "organization": "U.S. Geological Survey",
-    "description": "StreamStats REST services",
-    "version": "v1.2.22",
+    "description": "example",
+    "version": "v0.0.0",
     "statusOptionsURL":"https://github.com/GSA/code-gov-web/blob/master/src/assets/schemas/2.0.0.json#L144-L152",
 	"status": "preliminary",	
 
@@ -26,11 +26,8 @@
     "laborHours": null,
 
     "tags": [
-      "Streamstats",
       "Services",
-	  "REST",
-	  "Delineation",
-	  "BasinCharacteristics"
+	  "REST"
     ],
 
     "languages": [
@@ -43,7 +40,7 @@
     },
 
     "date": {
-      "metadataLastUpdated": "2017-10-25"
+      "metadataLastUpdated": "2018-01-25"
     }
   }
 ]
