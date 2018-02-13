@@ -123,7 +123,13 @@ class mainWrapper(object):
             #create inmemory ppoint
             with Features(self._workingDir,self.workspaceID) as ftr:
                 if (not ftr.isValid): raise Exception("features are invalid") 
-                self.Results["FeatureList"]=ftr.GetFeatures(features, outCRS, simplification)
+                features = ftr.GetFeatures(features, outCRS, simplification)
+                fc = {
+                      "type": "FeatureCollection",
+                      "bbox":ftr.BoundingBox,
+                      "features":features
+                      }
+                self.Results["Layers"]=fc
                 
             #call StreamStatsOps Watershed
             #sets the workspaceID
@@ -158,13 +164,13 @@ class mainWrapper(object):
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, default = '4326')
         
             #required for all below
-            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default= "")#"MO_STLouis20180201113005620000")
+            parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default= "")
          
             #for parameters
             parser.add_argument("-parameters", help="specifies the list of parameters to be computed", type=str, default = "")
        
             #for features
-            parser.add_argument("-includefeatures", help="specifies the features, if blank, you'll get a list of features available", type=str, default = r"Watershed,WatershedPoint")
+            parser.add_argument("-includefeatures", help="specifies the features, if blank, you'll get a list of features available", type=str, default = r"GlobalWatershedPoint,GlobalWatershed")
             parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)
             parser.add_argument("-outputcrs", help="specifies the output projection to use",type=int, default=4326)             
        

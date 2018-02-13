@@ -40,7 +40,8 @@ class Features(SSOpsBase):
     def __init__(self,workspacePath,id):
         SSOpsBase.__init__(self,workspacePath)
         self.isValid = False
-        self.WorkspaceID = id  
+        self.WorkspaceID = id
+        self.BoundingBox =[None,None,None,None]
         featurePath = os.path.join(self._WorkspaceDirectory, self.WorkspaceID+".gdb","Layers") 
         
         if(not arcpy.Exists(featurePath)):   
@@ -66,26 +67,14 @@ class Features(SSOpsBase):
         features =[]
         try:
             if featurelist == '':
-                for fname in self.FeaturesList:
-                    features.append({"name" : fname})
-                return
+                raise Exception("List of desired features are required.")
 
             else:
                 for f in map(lambda s: s.strip(), re.split("[,;\-!?:]+",featurelist)):
                     if f.lower() in self.FeaturesList:
-                        #only return global watershed for SS
-                        if f.lower() == "globalwatershed":
-                            expression = arcpy.AddFieldDelimiters(f, "GlobalWshd") + " = 1"
-                            gwcopied = arcpy.FeatureClassToFeatureClass_conversion(f, arcpy.Describe(f).path, f+"copied", expression)
-                            features.append({
-                                                "name" : f,                                  
-                                                "feature": self._simplify(gwcopied,crs, simplificationType)
-                                              })
-                        else:
-                            features.append({
-                                                "name" : f,                                  
-                                                "feature": self._simplify(f,crs, simplificationType)
-                                              })
+                        feature = self._simplify(f,crs, simplificationType)
+                        feature["id"] = f
+                        features.append(feature)
                         #endif
                     #endif
                 #next f
@@ -95,7 +84,18 @@ class Features(SSOpsBase):
             self._sm("Failed to include feature " + tb,"ERROR") 
         finally:
             if gwcopied != None: arcpy.Delete_management(gwcopied)  
-   
+    def GetAvailableFeatures(self):
+        availablefeatures =[]
+        try:
+            for fname in self.FeaturesList:
+                availablefeatures.append(fname) 
+
+            return availablefeatures
+        except:
+            tb = traceback.format_exc()
+            self._sm("Failed to include available features " + tb,"ERROR") 
+        finally:
+            if gwcopied != None: arcpy.Delete_management(gwcopied)  
     #endregion  
       
     #region Helper Methods
@@ -112,10 +112,10 @@ class Features(SSOpsBase):
          
     def _toJSON(self, fClass, toGeojson=True):
         featSet = None
+        file = None
         try:
             if(toGeojson):
                 desc = arcpy.Describe(fClass)
-                test = arcpy.MakeFeatureLayer_management(fClass, "test") 
                 file = arcpy.FeaturesToJSON_conversion(fClass,os.path.join(self._WorkspaceDirectory,desc.name+".json"),None,None,None,"GEOJSON")[0]
                 return json.load(open(file))['features'][0]
                
@@ -127,6 +127,8 @@ class Features(SSOpsBase):
         except:
             tb = traceback.format_exc()
             self._sm("Failed to serialize " + tb,"ERROR")
+        finally:
+            if file != None: os.remove(file)
     
     def _toProjection(self, inFeature, toCRS):
         sr = None  
@@ -188,8 +190,10 @@ class Features(SSOpsBase):
             self._sm("Simplifying feature with tolerance: "+str(tolerance))
 
             if type == 'Polygon':
+                self._updateBoundingBox(outputFC)
                 simplifiedfc = CA.SimplifyPolygon(outputFC,  os.path.join(self._TempLocation, "simplified"), "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
             else:
+                self._updateBoundingBox(outputFC)
                 simplifiedfc = CA.SimplifyLine(outputFC, os.path.join(self._TempLocation, "simplified"), "POINT_REMOVE", str(tolerance) +" Meters", "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
                 
             self._sm(arcpy.GetMessages()) 
@@ -217,6 +221,17 @@ class Features(SSOpsBase):
             return rtn
         except:
             return -1
+    def _updateBoundingBox(self, feature):        
+        try:
+            extent = arcpy.Describe(feature).Extent
+            if(self.BoundingBox[0] == None or extent.XMin < self.BoundingBox[0]): self.BoundingBox[0]= extent.XMin
+            if(self.BoundingBox[1] == None or extent.YMin < self.BoundingBox[1]): self.BoundingBox[1]= extent.YMin
+
+            if(self.BoundingBox[2] == None or extent.XMax > self.BoundingBox[2]): self.BoundingBox[2]= extent.XMax
+            if(self.BoundingBox[3] == None or extent.YMax > self.BoundingBox[3]): self.BoundingBox[3]= extent.YMax
+   
+        except:
+            tb = traceback.format_exc()
 
     def _copyandRemoveFeature(self, polyFC, fieldName, whereclause):
         try:
