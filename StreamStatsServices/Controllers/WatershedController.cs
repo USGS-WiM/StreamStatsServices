@@ -40,15 +40,18 @@ namespace StreamStatsServices.Controllers
         [HttpGet()]
         //watershed?rcode={}&xlocation={}&ylocation={}&crs={}&includeparameters={}&includeflowtypes={}&includefeatures={}&simplify={}
         //watershed?rcode={}&workspaceID={}&crs={}&includeparameters={}&includeflowtypes={}&includefeatures={}&simplify={}
-        public async Task<IActionResult> Get([FromQuery]string rcode, [FromQuery]int crs=4326, [FromQuery]double? xlocation=null, [FromQuery] double? ylocation=null, [FromQuery] string workspaceID = "",[FromQuery] bool simplify = true)
+        public async Task<IActionResult> Get([FromQuery]string rcode, [FromQuery]int crs=4326, [FromQuery]double? xlocation=null, [FromQuery] double? ylocation=null, [FromQuery] string workspaceID = "",[FromQuery] bool simplify = true, [FromQuery] bool surfacecontributiononly = false)
         {
             Watershed result = null;
+            stormwaterOption scFlag = stormwaterOption.e_default;
             try
             {
                 if (!(xlocation.HasValue & ylocation.HasValue) & string.IsNullOrEmpty(workspaceID)) return new BadRequestObjectResult("X,Y locations or WorkspaceID is required.");
                 if (String.IsNullOrEmpty(rcode)) return new BadRequestObjectResult("Region identifier is required");
                 //delineation
-                result = agent.GetWatershed(xlocation.Value, ylocation.Value, crs, rcode, simplify);
+                if (surfacecontributiononly) scFlag = stormwaterOption.e_surfacecontributiononly;
+
+                result = agent.GetWatershed(xlocation.Value, ylocation.Value, crs, rcode, simplify, scFlag);
                 sm(agent.Messages);
                 return Ok(result);
             }

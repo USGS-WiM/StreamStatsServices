@@ -33,7 +33,7 @@ namespace StreamStatsAgent
 {
     public interface IStreamStatsAgent : IMessage
     {
-        Watershed GetWatershed(double X, double Y, int espg, string regioncode, bool simplify);
+        Watershed GetWatershed(double X, double Y, int espg, string regioncode, bool simplify, stormwaterOption stormwater=0);
     }
 
     public class StreamStatsAgent : ExternalProcessServiceAgentBase, IStreamStatsAgent
@@ -51,7 +51,7 @@ namespace StreamStatsAgent
         }
         #endregion
         #region Methods
-        public Watershed GetWatershed(double X, double Y, int espg, string regioncode, bool simplify) {
+        public Watershed GetWatershed(double X, double Y, int espg, string regioncode, bool simplify, stormwaterOption stormwater = stormwaterOption.e_default) {
             Watershed result = null;
             List<string> args = new List<string>();
             try
@@ -59,6 +59,7 @@ namespace StreamStatsAgent
                 args.Add("-rcode " + regioncode);
                 args.Add(String.Format("-pourpoint [{0},{1}]", X, Y));
                 args.Add("-pourpointwkid " + espg);
+                args.Add("-stormwaterOption "+(int)stormwater);
                 var body = string.Join(" ", args);
 
                 result = Execute<Watershed>(getProcessRequest(getProcessName(processType.e_stormwaterDelineation), body));      
@@ -116,7 +117,14 @@ namespace StreamStatsAgent
             e_editwatershed,
             e_shape
         }
+        
         #endregion
+    }
+    public enum stormwaterOption
+    {
+        e_default = 1,
+        e_stormwater = 1,
+        e_surfacecontributiononly = 2
     }
 
 }

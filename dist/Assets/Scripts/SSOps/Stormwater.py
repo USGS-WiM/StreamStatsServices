@@ -53,7 +53,8 @@ class Stormwater(SSOpsBase):
     #endregion   
         
     #region Methods   
-    def Delineate(self, PourPoint):
+    def Delineate(self, PourPoint, directSurfaceContributionOnly = False):
+       
         fdr = None
         strlnk = None
         cat = None
@@ -68,6 +69,7 @@ class Stormwater(SSOpsBase):
         netTrace = None
 
         try:
+            print directSurfaceContributionOnly
             datasetName = Config()["datasetNames"]
             self._sm("Delineating catchment")
             fdr = MapLayer(MapLayerDef("fdr"), "", PourPoint)
@@ -77,10 +79,10 @@ class Stormwater(SSOpsBase):
             strlnk = self._getActiveLayer("strlnk", fdr.TileID)            
             cat = self._getActiveLayer("Catchment",fdr.TileID,fdr.TileID+".gdb\\Layers")       
             adjCat = self._getActiveLayer("AdjointCatchment",fdr.TileID,fdr.TileID+".gdb\\Layers")
-            pipe = self._getActiveLayer("Pipe",fdr.TileID,fdr.TileID+".gdb\\Layers", True)
-            strm =self._getActiveLayer("Stream",fdr.TileID,fdr.TileID+".gdb\\Layers", True)
+            pipe = str(self._getActiveLayer("Pipe",fdr.TileID,fdr.TileID+".gdb\\Layers", True))
+            strm =str(self._getActiveLayer("Stream",fdr.TileID,fdr.TileID+".gdb\\Layers", True))
             sink =self._getActiveLayer("SinkWatershed",fdr.TileID,fdr.TileID+".gdb\\Layers")
-            hydrJct =self._getActiveLayer("HydroJunction",fdr.TileID,fdr.TileID+".gdb\\Layers") 
+            hydrJct = str(self._getActiveLayer("HydroJunction",fdr.TileID,fdr.TileID+".gdb\\Layers",True)) 
 
             sr = fdr.spatialreference
       
@@ -95,7 +97,7 @@ class Stormwater(SSOpsBase):
             result=netTrace.GetWatershedViaNetTrace(PourPoint,2,fdr.Dataset, strlnk,strlnk,
                                                                cat, adjCat, sink, pipe, strm, hydrJct, 
                                                                os.path.join(featurePath,datasetName["basin"]),
-                                                               os.path.join(featurePath,datasetName["point"]), False)
+                                                               os.path.join(featurePath,datasetName["point"]), directSurfaceContributionOnly)
 
             self._sm(arcpy.GetMessages(), 'AHMSG')
             self._sm("Finished")

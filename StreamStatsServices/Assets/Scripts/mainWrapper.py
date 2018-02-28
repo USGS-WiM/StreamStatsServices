@@ -58,6 +58,7 @@ class mainWrapper(object):
             regionID = self._args.rcode
             ppoint = self._args.pourpoint          
             crs = self._args.pourpointwkid
+            stormwaterOption = self._args.stormwaterOption
             print(ppoint, regionID, crs)
 
             self.workspaceID = self._args.workspaceID
@@ -70,8 +71,9 @@ class mainWrapper(object):
             appendList = self._args.appendlist
             removelist = self._args.removelist
 
-            if(regionID and ppoint and crs): 
-                self._computeWatershed(ppoint, crs)            
+            if(regionID and ppoint and crs):
+                self._computeWatershed(ppoint,crs,stormwaterOption)
+                          
             
             if(self.workspaceID and parameters):
                 self._loadParameters(parameters)
@@ -92,15 +94,20 @@ class mainWrapper(object):
             print (json.dumps(self.Results))
     #endregion
     #region Helper Methods 
-    def _computeWatershed(self, ppoint, crs):
+    def _computeWatershed(self, ppoint, crs, stormwaterOption = None):
         wshed = None
         try:
             #create inmemory ppoint
             pourpoint = self._buildAHPourpoint(ppoint,crs)
             id = os.path.basename(self._workingDir)
             #call StreamStatsOps Watershed
-            with Stormwater(self._workingDir,id) as sw:
-                wshed = sw.Delineate(pourpoint)
+            if(stormwaterOption):
+                with Stormwater(self._workingDir,id) as sw:
+                    wshed = sw.Delineate(pourpoint, stormwaterOption == 2)
+            else:
+                #will eventually be swapped out with old AH delineation method
+                with Stormwater(self._workingDir,id) as sw:
+                    wshed = sw.Delineate(pourpoint)
             #sets the workspaceID
             self.workspaceID = id
             self.Results["WorkspaceID"] = id
@@ -160,9 +167,10 @@ class mainWrapper(object):
             parser = argparse.ArgumentParser()
             #for delineation
             parser.add_argument("-rcode", help="specifies the abbr state name to perform delineation", type=str, default="MO_STLouis")
-            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-90.24313151836395,38.63352941107537]')
+            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-90.268639,38.640936]')
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, default = '4326')
-        
+            parser.add_argument("-stormwaterOption", help="Defines object for stormwater delineation option, 1-stormwater, 2-direct surface contributation only",choices=[1,2],type=int,default=1)
+
             #required for all below
             parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default= "")
          
@@ -176,6 +184,7 @@ class mainWrapper(object):
        
             #for download
             parser.add_argument("-totype", help="specifies the type to convert to, 2 = .gdb, 1 = .shp", type=int, choices=[None, 1,2], default = None)
+
             #for editing
             parser.add_argument("-appendlist", help="specifies a list of polygons to append", type=str, default = None)
             parser.add_argument("-removelist", help="specifies a list of polygons to remove", type=str, default = None)
@@ -204,7 +213,8 @@ class mainWrapper(object):
                          ("Name", "TEXT"),
                          ("Descript", "TEXT"), 
                          ("SnapOn", "SHORT"),
-                         ("SrcType", "SHORT")                        
+                         ("SrcType", "SHORT"),
+                         ("BATCHDONE", "SHORT") 
                         )
             for t_field in t_fields:  
                 arcpy.AddField_management(FC, *t_field)  
@@ -214,7 +224,7 @@ class mainWrapper(object):
             fields.insert(0,'SHAPE@')
 
             with arcpy.da.InsertCursor(FC,fields) as cursor:
-                cursor.insertRow([arcpy.AsShape(pourPoint),"ags101","",1,0])
+                cursor.insertRow([arcpy.AsShape(pourPoint),"ags101","",None,None,None])
             #next cursor
 
             return FC
