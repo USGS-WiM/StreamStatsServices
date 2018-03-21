@@ -173,31 +173,6 @@ namespace SStats.Utilities.ServiceAgent
             }
         }
 
-        public static Capabilities GetRegionCapabilities(string regioncode,  String cType)
-        {
-            XElement iterator = null;
-            XElement selectedItem;
-            string xmlFile = ConfigurationManager.AppSettings["SSCapabilityRepository"];
-            Capabilities capabilities = new Capabilities(); ;
-
-            try
-            {
-                xmlFile = Path.Combine(xmlFile, string.Equals(cType, "dev", StringComparison.OrdinalIgnoreCase) ? "ApStates_dev.xml" : "ApStates_prod.xml");
-
-                iterator = XElement.Load(xmlFile);
-                selectedItem = iterator.Descendants("ApState").Where(a => String.Equals(a.Attribute("Name").Value, regioncode, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
-                capabilities.regionCode = selectedItem.Attribute("Name")!= null? selectedItem.Attribute("Name").Value: null;
-                capabilities.mapservice_src = selectedItem.Attribute("MapServiceWKID")!= null? selectedItem.Attribute("MapServiceWKID").Value:null;
-                capabilities.mapservice = selectedItem.Attribute("MapServiceName")!= null? selectedItem.Attribute("MapServiceName").Value: null;
-                capabilities.toolList = selectedItem.Elements("ApTools").Elements().Where(a => a.Attribute("Visible").Value == "1").Select(l => l.Attribute("Name").Value).ToList();
-
-                return capabilities;
-            }
-            catch (Exception err)
-            {
-                throw err;
-            }
-        }
     #endregion
     #region "Helper Methods"
  

@@ -4,6 +4,7 @@ using System.Linq;
 using System.Web;
 using System.Xml.Serialization;
 
+using NSSService.Resources;
 using WiM.Resources.Spatial;
 using WiM.Resources;
 using Newtonsoft.Json;
@@ -29,7 +30,7 @@ namespace SStats.Resources
         [JsonProperty("parameters")]
         [XmlArray("parameters")]
         [XmlArrayItem("parameter")]
-        public List<Parameter> Parameters { get; set; }
+        public List<WiM.Resources.Parameter> Parameters { get; set; }
 
         [JsonProperty("messages")]
         [XmlArray("messages")]
@@ -86,7 +87,7 @@ namespace SStats.Resources
         [JsonProperty("parameters")]
         [XmlArray("parameters")]
         [XmlArrayItem("parameter")]
-        public List<Parameter> ParameterList { get; set; }
+        public List<WiM.Resources.Parameter> ParameterList { get; set; }
 
         [JsonProperty("messages")]
         [XmlArray("messages")]
@@ -114,38 +115,13 @@ namespace SStats.Resources
         [JsonProperty("flowstatistics")]
         [XmlArray("flowstatistics")]
         [XmlArrayItem("flowstatistic")]
-        public List<string> FlowStatsList { get; set; }
+        public List<StatisticGroupType> FlowStatsList { get; set; }
 
         [JsonProperty("messages")]
         [XmlArray("messages")]
         [XmlArrayItem("message")]
         public List<String> Messages { get; set; }
     }
-
-    [XmlRoot("capabilities")]
-    public class Capabilities
-    {
-        [JsonProperty("region")]
-        [XmlElement("region")]
-        public string regionCode { get; set; }
-
-        [JsonProperty("mapservice")]
-        [XmlElement("mapservice")]
-        public string mapservice { get; set; }
-
-        [JsonProperty("mapservice_src")]
-        [XmlElement("mapservice_src")]
-        public string mapservice_src { get; set; }
-
-        [JsonProperty("availabletools")]
-        [XmlArray("availabletools")]
-        [XmlArrayItem("tool")]
-        public List<string> toolList { get; set; }
-
-        [JsonProperty("messages")]
-        [XmlArray("messages")]
-        [XmlArrayItem("message")]
-        public List<String> Messages { get; set; }
-    }
+   
     
 }//end namespace
