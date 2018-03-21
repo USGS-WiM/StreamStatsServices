@@ -39,7 +39,7 @@ using System.Reflection;
 using System.Web;
 using System.Xml.Serialization;
 
-using WiM.Utilities.Storage;
+
 using WiM.Exceptions;
 
 using SStats.Utilities;
@@ -53,12 +53,12 @@ namespace SStats.Handlers
         [HttpOperationAttribute(HttpMethod.GET)]
         public OperationResult Get(String regioncode)
         {
-            SSServiceAgent agent = null;
+            NSSServiceAgent agent = null;
             try
             {
-                agent = new SSServiceAgent();
+                agent = new NSSServiceAgent();
 
-                return new OperationResult.OK { ResponseResource = new FlowStatistics() { Messages = agent.Messages, FlowStatsList = agent.GetStateFlowStatistics(regioncode) } };
+                return new OperationResult.OK { ResponseResource = agent.GetAvailableStatistics(regioncode) };
             }
             catch (Exception ex)
             {
@@ -73,21 +73,23 @@ namespace SStats.Handlers
         [HttpOperation(HttpMethod.GET, ForUriName = "GetFlowStatsFromWorkspaceID")]
         public OperationResult GetFlowStatsFromWorkspaceID(String regioncode, string workspaceID, [Optional] String flowtypeList)
         {
-            Object flows;
-            SSServiceAgent agent = null;
+            NSSServiceAgent agent = null;
             string src = string.Empty;
             try
             {
                 //Return BadRequest if there is no ID 
                 if (string.IsNullOrEmpty(regioncode)|| string.IsNullOrEmpty(workspaceID)) return new OperationResult.BadRequest() { ResponseResource = "no state or workspace specified" };
-                if (!includeMethod(ref flowtypeList)) flowtypeList ="";
+                if (!includeMethod(ref flowtypeList)) throw new BadRequestException("No flowtypes requested");
+                
+                agent = new NSSServiceAgent();
+                if (string.IsNullOrEmpty(flowtypeList))
+                {
+                    flowtypeList = String.Join(",", agent.GetAvailableStatistics(regioncode).Select(x => x.Code));
+                }
 
-                agent = new SSServiceAgent(workspaceID);
-
-                flows = agent.GetFlowStatistics(regioncode, flowtypeList);                   
+                var flows = agent.GetStatistics(regioncode,workspaceID, flowtypeList);                   
           
                 return new OperationResult.OK { ResponseResource = flows };
-
             }
             catch (BadRequestException ex)
             {
@@ -95,7 +97,7 @@ namespace SStats.Handlers
             }
             catch (Exception ex)
             {
-                return new OperationResult.InternalServerError { ResponseResource = "error" };
+                return new OperationResult.InternalServerError { ResponseResource = "Flowstats error "+ex.Message };
             }
         }//end HttpMethod.GET
 

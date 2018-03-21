@@ -54,7 +54,8 @@ class Features(object):
         if(not self.__workspaceExists__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):   
             self.__sm__("workspace: "+ os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
             return
-         
+        
+        arcpy.env.overwriteOutput = True
         arcpy.env.workspace =  os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers")
         self.__sm__("Initialized")
 
@@ -270,4 +271,3 @@ class FeaturesWrapper(object):
 
 if __name__ == '__main__':
     FeaturesWrapper()
-

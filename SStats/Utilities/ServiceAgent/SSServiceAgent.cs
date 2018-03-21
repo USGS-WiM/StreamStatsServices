@@ -11,8 +11,8 @@ using Newtonsoft.Json.Linq;
 using WiM.Utilities.ServiceAgent;
 using WiM.Resources;
 using WiM.Resources.Spatial;
-using WiM.Utilities.Storage;
 using WiM.Exceptions;
+using WiM.Utilities.Storage;
 
 using SStats.Resources;
 using SSDB;
@@ -59,11 +59,16 @@ namespace SStats.Utilities.ServiceAgent
         {
             JObject result = null;
             string msg;
-            ServiceAgent sa = new ServiceAgent();
+            
             try
             {
-                if (!validStudyCode(basinCode)) basinCode = sa.GetStudyCode(x, y, espg);
-
+                if (ConfigurationManager.AppSettings["exludedcodes"].ToUpper().Split(',').Contains(basinCode.ToUpper()))
+                {
+                    var ssSA = new StateSelectServiceAgent();
+                    basinCode = ssSA.getUnderlyingBasinCode(new Point(x,y),espg);
+                    if (string.IsNullOrEmpty(basinCode)) throw new BadRequestException("rcode is invalid for given point location");
+                }
+                
                 result = Execute(getProcessRequest(getProcessName(processType.e_delineation), getBody(basinCode, x, y, espg))) as JObject;
 
                 if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
@@ -77,6 +82,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw new Exception(ex.Message);
             }
         }
+
         public Boolean EditWatershed(WatershedEditDecisionList watershedEDL, int espg)
         {
             List<GeometryBase> appendFeatures = null;
@@ -141,7 +147,8 @@ namespace SStats.Utilities.ServiceAgent
                 sm("xmlcount:" + regionParameters.Count());
                 this.sm(xml.Messages);
 
-                db = new dbOps(String.Format(ConfigurationManager.AppSettings["SSDBConnectionString"], "Lj1ulzxcZvmXPNFmI03u"),dbOps.ConnectionType.e_mysql);
+                db = new dbOps(String.Format(ConfigurationManager.AppSettings["dbconnectionstring"], ConfigurationManager.AppSettings["dbuser"], 
+                    ConfigurationManager.AppSettings["dbpassword"]),dbOps.ConnectionType.e_mysql);
                 regionParameterList = db.GetDBItems<Param>(dbOps.SQLType.e_parameterlist, "'"+String.Join("','", regionParameters) +"'");
                 
 
@@ -181,7 +188,8 @@ namespace SStats.Utilities.ServiceAgent
             List<string> groupCodes;
             try
             {
-                db = new postgresqldbOps(ConfigurationManager.AppSettings["SSDBConnectionString"]);
+                db = new postgresqldbOps(String.Format(ConfigurationManager.AppSettings["dbconnectionstring"], ConfigurationManager.AppSettings["dbuser"],
+                    ConfigurationManager.AppSettings["dbpassword"]));
                 groupCodes = db.GetGroupCodes(rcode);
                 this.sm(db.Messages);
                 return groupCodes;
@@ -213,37 +221,6 @@ namespace SStats.Utilities.ServiceAgent
 
             Storage aStorage = new Storage(this.RepositoryDirectory);
             return aStorage.GetZipFile(result);
-        }
-        public List<string> GetStateFlowStatistics(string regionCode) {
-            SSXMLAgent xmlagent = null;
-            List<string> regionFlowStatsList;
-            try
-            {
-                xmlagent = new SSXMLAgent(regionCode);
-                regionFlowStatsList = xmlagent.GetRegionFlowStats();
-                this.sm(xmlagent.Messages);
-
-                return regionFlowStatsList;
-            }
-            catch (Exception ex)
-            {
-                throw ex;
-            }
-            finally
-            {
-                if (xmlagent != null) xmlagent.Dispose();
-            }
-        
-        }
-        public dynamic GetFlowStatistics(string state, string flowtypeList)
-        {
-            List<string> requestfCodes;
-
-            requestfCodes = this.parse(flowtypeList);
-
-            var result = Execute(getProcessRequest(getProcessName(processType.e_flowstats), getstatisticsBody(state, requestfCodes))) as JObject;
-
-            return result;
         }
         public List<FeatureWrapper> GetFeatures(string features, Int32 crsCode, Int32 simplificationOption = 1)
         {
@@ -288,39 +265,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }
-        public NHDTrace GetNavigationFeatures(string regioncode, Int32 navCode, string startpoint, Int32 espg, string endpoint, 
-                                                            string workspaceID, string traceDirection,string traceLayers){
-            JObject result;
-            string msg;
-            string report = string.Empty;
-            try
-            {
-                if (string.IsNullOrEmpty(regioncode)) throw new Exception("rcode string must not be null");
-                if (!string.IsNullOrEmpty(workspaceID))
-                {
-                    this.WorkspaceString = workspaceID;
-                    if (!isWorkspaceValid(RepositoryDirectory)) throw new DirectoryNotFoundException("Workspace not found.");
-                }
 
-                if (navCode == 3) navCode = 4;
-                else if(navCode ==2 && string.IsNullOrEmpty(workspaceID)) navCode = 3;
-
-                result = Execute(getProcessRequest(getProcessName(processType.e_navigation), getBody(regioncode,navCode,startpoint,endpoint,espg,workspaceID,traceDirection,traceLayers))) as JObject;
-                if (isDynamicError(result, out msg)) throw new Exception("Feature Error: " + msg);
-                parseFeatures(result);
-                var reportProperty = result.Property("NHDTraceReport");
-                if (reportProperty != null)
-                    report = result.Value<string>("NHDTraceReport");
-
-                return new NHDTrace() { FeatureList = this._featureResultList.Select(x => x.Value).ToList(), Report = report, Messages= this.Messages };
-            }
-            catch (Exception ex)
-            {
-                sm("Navigation Error " + ex.Message);
-                throw;
-            }
-        
-        }
         #endregion
 
         #region Watershed Helper Methods
@@ -411,6 +356,26 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }//end try
         }
+        private string getUnderlyingBasinCode(double x, double y, int espg)
+        {
+            try
+            {
+                //test if espg correct, if not request projection
+                if(espg != 4326)
+                {
+                    //projectedpoint
+                    throw new Exception("Need to implement projection method");
+                }
+
+
+                throw new NotImplementedException();
+            }
+            catch (Exception ex)
+            {
+                return string.Empty;
+            }
+
+        }
         #endregion
 
         #region Parameter Helper Methods
@@ -456,32 +421,7 @@ namespace SStats.Utilities.ServiceAgent
             return paramList;
         }
         #endregion
-
-        #region Statistics Helper Methods
-        private string getstatisticsBody(string state,List<string> flowtypeList )
-        {
-            List<string> body = new List<string>();
-            string flowtype = string.Empty;
-            try
-            {
-                flowtype = string.Join(";", flowtypeList.Select(p => p).ToList());
-
-                body.Add("-stabbr " + state);
-                if(!string.IsNullOrEmpty(flowtype))
-                    // double quotes around flow type to account for spaces"
-                    body.Add("-flowtype " + '"'+flowtype+'"');
-                body.Add("-workspaceID " + this.WorkspaceString);
-                body.Add("-directory " + RepositoryDirectory);
-
-                return string.Join(" ", body);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }//end getParameterList   
-        #endregion
-
+        
         #region Feature Helper Methods
         private string loadFeatures(string feature, Int32 crsCode, Int32 simplificationOption)
         {
@@ -619,37 +559,6 @@ namespace SStats.Utilities.ServiceAgent
 
         #endregion
 
-        #region Navigation Feature Helper Methods
-
-        private string getBody(string rcode, Int32 methodID, string startpoint, string endpoint, int crsCode, string workspaceID, string traceDirection, string traceLayers)
-        {
-            List<string> body = new List<string>();
-            try
-            {
-                body.Add("-directory " + RepositoryDirectory);
-                body.Add("-rcode " + rcode);
-                body.Add("-method " + methodID);
-                body.Add("-startpoint " + startpoint);
-                if (!string.IsNullOrEmpty(endpoint))
-                    body.Add("-endpoint " + endpoint);
-                body.Add("-inputcrs " + crsCode);
-                if (!string.IsNullOrEmpty(workspaceID))
-                    body.Add("-workspaceID " + workspaceID);
-                if (methodID == 4)
-                {
-                    body.Add("-tracedirection " + traceDirection);
-                    body.Add("-tracelayers " + traceLayers);
-                }                    
-
-                return string.Join(" ", body);
-            }
-            catch (Exception)
-            {
-                throw;
-            }
-        }
-        #endregion
-
         #region Other Helper Methods
         protected string getRepositoryPath()
         {
@@ -757,9 +666,6 @@ namespace SStats.Utilities.ServiceAgent
                 case processType.e_shape:
                     uri = ConfigurationManager.AppSettings["Shape"];
                     break;
-                case processType.e_flowstats:
-                    uri = ConfigurationManager.AppSettings["Flowstats"];
-                    break;
                 case processType.e_features:
                     uri = ConfigurationManager.AppSettings["Features"];
                     break;
@@ -810,7 +716,6 @@ namespace SStats.Utilities.ServiceAgent
             e_delineation,
             e_parameters,
             e_shape,
-            e_flowstats,
             e_features,
             e_editwatershed,
             e_attributes,

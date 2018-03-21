@@ -43,7 +43,7 @@ class BasinParameters(object):
     #region Constructor
     def __init__(self, regionID, directory, workspaceID, pList): 
         self.RegionID = regionID
-        self.__xmlPath__ = r"D:\ss_apps\XML" 
+        self.__xmlPath__ = r"e:\XML" 
         self.WorkspaceID = workspaceID
         self.isComplete = False
         self.Message =""    

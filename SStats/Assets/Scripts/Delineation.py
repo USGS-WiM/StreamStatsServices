@@ -42,8 +42,8 @@ class Delineation(object):
     #region Constructor
     def __init__(self, regionID, directory):
         self.Message =""
-        self.__schemaPath__ = r"D:\ss_socs\ss_gp\schemas"
-        self.__xmlPath__ = r"D:\ss_apps\XML" 
+        self.__schemaPath__ = r"E:\schemas"
+        self.__xmlPath__ = r"E:\XML" 
         self.__regionID__ = regionID        
         self.__templatePath__ = os.path.join(self.__schemaPath__,self.__regionID__ + "_ss.gdb","Layers")
         self.WorkspaceID = self.__regionID__ + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')
@@ -119,7 +119,7 @@ class Delineation(object):
     def __removePolygonHoles__(self, polyFC, path):
         try:
 
-            result = arcpy.EliminatePolygonPart_management(polyFC, os.path.join(path,"GlobalWatershed"), "AREA_OR_PERCENT", "90 squaremeters", 1, "ANY")#modified CONTAINED_ONLY
+            result = arcpy.EliminatePolygonPart_management(polyFC, os.path.join(path,"GlobalWatershed"), "AREA", "90 squaremeters", 1, "ANY")#modified CONTAINED_ONLY
 
             self.__sm__(arcpy.GetMessages())
             return result
@@ -263,4 +263,3 @@ class DelineationWrapper(object):
 
 if __name__ == '__main__':
     DelineationWrapper()
-
