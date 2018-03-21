@@ -36,7 +36,6 @@ namespace SSDB
     public class postgresqldbOps:IDisposable
     {
         #region "Fields"
-        //Server=136.177.100.147;Port=5432;User Id=***REMOVED***;Password=***REMOVED***;Database=globalsde;
         private string connectionString = string.Empty;
         private NpgsqlConnection connection;
         #endregion
@@ -52,7 +51,7 @@ namespace SSDB
         public postgresqldbOps(string pSQLconnstring)
         {
             this.connectionString = pSQLconnstring;
-            this.connection = new NpgsqlConnection(String.Format(connectionString, "***REMOVED***"));
+            this.connection = new NpgsqlConnection(connectionString);
         }
         #endregion
         #region IDisposable Support
