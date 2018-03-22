@@ -127,9 +127,7 @@ class BasinParameters(object):
         if not arcpy.Exists(workspace):
             self.__sm__("Workspace " + workspace + " does not exist")
             return False
-        if not arcpy.TestSchemaLock(workspace):
-            self.__sm__("Workspace " + workspace + " has a schema lock","AHMSG")
-            return False
+
         self.__sm__("Workspace " + workspace + " is valid")
         return True
     def __setScratchWorkspace__(self, directory):
