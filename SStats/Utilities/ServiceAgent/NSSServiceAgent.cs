@@ -116,7 +116,7 @@ namespace SStats.Utilities.ServiceAgent
                     .ToDictionary(g => g.Key, g => g.Last().Value);
 
                 parameterList = charactersitcsList.Where(c =>
-                    Attributes.ContainsKey(c.ToUpper()) && !Convert.IsDBNull(Attributes[c.ToUpper()]) && Convert.ToDouble(Attributes[c.ToUpper()]) > 0)
+                    Attributes.ContainsKey(c.ToUpper()) && !Convert.IsDBNull(Attributes[c.ToUpper()]) && !(Convert.ToDouble(Attributes[c.ToUpper()]) < 0))
                     .ToDictionary(key => key, val => (double?)Convert.ToDouble(Attributes[val]));
 
                 var requestList = charactersitcsList.Where(c => !parameterList.ContainsKey(c)).ToArray();
@@ -149,7 +149,7 @@ namespace SStats.Utilities.ServiceAgent
         {
             try
             {
-                if (!rcode.Equals("in", StringComparison.OrdinalIgnoreCase)) return null;
+                if (!rcode.Equals("in", StringComparison.OrdinalIgnoreCase)) throw new Exception();
                 
                     var crA = new CoordinatedReachAgent();
                     return crA.GetCoordinatedReach(rcode, point);              
