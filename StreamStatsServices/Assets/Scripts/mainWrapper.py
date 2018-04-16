@@ -58,8 +58,7 @@ class mainWrapper(object):
             regionID = self._args.rcode
             ppoint = self._args.pourpoint          
             crs = self._args.pourpointwkid
-            stormwaterOption = self._args.stormwaterOption
-            print(ppoint, regionID, crs)
+            stormwaterOption = self._args.stormwaterOption            
 
             self.workspaceID = self._args.workspaceID
             parameters = self._args.parameters
@@ -167,7 +166,7 @@ class mainWrapper(object):
             parser = argparse.ArgumentParser()
             #for delineation
             parser.add_argument("-rcode", help="specifies the abbr state name to perform delineation", type=str, default="MO_STLouis")
-            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-90.268639,38.640936]')
+            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-90.18809,38.611512]')
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, default = '4326')
             parser.add_argument("-stormwaterOption", help="Defines object for stormwater delineation option, 1-stormwater, 2-direct surface contributation only",choices=[1,2],type=int,default=1)
 

@@ -69,7 +69,7 @@ class Stormwater(SSOpsBase):
         netTrace = None
 
         try:
-            print directSurfaceContributionOnly
+            self._sm("directSurfaceContributionOnly "+str(directSurfaceContributionOnly))
             datasetName = Config()["datasetNames"]
             self._sm("Delineating catchment")
             fdr = MapLayer(MapLayerDef("fdr"), "", PourPoint)
