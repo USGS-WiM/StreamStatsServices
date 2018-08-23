@@ -226,7 +226,7 @@ namespace SStats.Utilities.ServiceAgent
                         Name = string.Format("{0} year Peak Flood",item.Key),
                         Equation = "CoefficientA*DRNAREA^CoefficientB",
                         UnitType = new { Abbr = "mi^2", Unit = "square miles" },
-                        Value= Math.Pow(item.Value.CoefficientA*paramList["DRNAREA"].Value,item.Value.CoefficientB)
+                        Value= item.Value.CoefficientA*Math.Pow(paramList["DRNAREA"].Value,item.Value.CoefficientB)
                     });
                 }//next item
                 return result;
@@ -236,6 +236,7 @@ namespace SStats.Utilities.ServiceAgent
                 throw;
             }
         }
+
         private extent getCircleExtent(EsriPoint pnt, double radiusMeter)
         {
             //https://gis.stackexchange.com/questions/2951/algorithm-for-offsetting-a-latitude-longitude-by-some-amount-of-meters

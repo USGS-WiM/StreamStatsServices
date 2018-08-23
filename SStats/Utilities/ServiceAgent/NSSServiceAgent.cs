@@ -105,7 +105,7 @@ namespace SStats.Utilities.ServiceAgent
                 }//end if
                
                 //3 get basincharacteristics
-                var charactersitcsList = scenarios.SelectMany(s => s.RegressionRegions.SelectMany(r => r.Parameters.Select(p => p.Code))).ToList();
+                var charactersitcsList = scenarios!=null?scenarios.SelectMany(s => s.RegressionRegions.SelectMany(r => r.Parameters.Select(p => p.Code))).ToList():new List<string>();
                 if (creach.Count > 0) charactersitcsList.Add("DRNAREA");
                 charactersitcsList=charactersitcsList.Distinct().ToList();
 
