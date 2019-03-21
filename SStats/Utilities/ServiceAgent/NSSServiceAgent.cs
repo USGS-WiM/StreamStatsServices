@@ -81,7 +81,7 @@ namespace SStats.Utilities.ServiceAgent
 
             List<Scenario> scenarios = null;
             List<string> statgroupList;
-            List<CoordinatedReach> creach = null;
+            List<CoordinatedReach> creach = new List<CoordinatedReach>();
             Dictionary<string, double?> parameterList = null;
             List<Scenario> scensarioResult = null;
             try
