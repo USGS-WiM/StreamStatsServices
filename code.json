@@ -5,7 +5,7 @@
     "description": "StreamStats REST services",
     "version": "v1.2.22",
     "statusOptionsURL":"https://github.com/GSA/code-gov-web/blob/master/src/assets/schemas/2.0.0.json#L144-L152",
-	"status": "preliminary",	
+	"status": "Production",	
 
     "permissions": {
       "usageType": "openSource",
@@ -17,7 +17,7 @@
       ]
     },
 
-    "homepageURL": "https://wim.usgs.gov",
+    "homepageURL": "https://streamstats.usgs.gov",
     "downloadURL": "https://github.com/USGS-WiM/StreamStatsServices/archive/master.zip",
     "disclaimerURL": "https://github.com/USGS-WiM/StreamStatsServices/blob/master/DISCLAIMER.md",
     "repositoryUrl": "https://github.com/USGS-WiM/StreamStatsServices",
@@ -26,7 +26,7 @@
     "laborHours": null,
 
     "tags": [
-      "Streamstats",
+      "streamstats",
       "Services",
 	  "REST",
 	  "Delineation",
@@ -34,7 +34,7 @@
     ],
 
     "languages": [
-      "c#"
+      "c#", "python"
     ],
 
     "contact": {
