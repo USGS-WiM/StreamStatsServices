@@ -47,6 +47,7 @@ class BasinParameters(object):
         self.WorkspaceID = workspaceID
         self.isComplete = False
         self.Message =""    
+        self.directory = directory
         self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
         self.__TempLocation__ = os.path.join(self.__MainDirectory__, "Temp")
         self.ParameterList = None
@@ -89,7 +90,7 @@ class BasinParameters(object):
             arcpy.CheckInExtension("Spatial")
             self.__sm__("finished calc params")
 
-            plist = self.__parseParameterXML__(outputFile.format(".xml"))
+            plist = self.__getParametersFromWorkspace__(parameters)
             if (len(plist) < 1):
                 raise Exception("No parameters returned")
            
@@ -117,6 +118,29 @@ class BasinParameters(object):
         except:
              tb = traceback.format_exc()
              self.__sm__("Error reading parameters "+tb,"ERROR")
+    def __getParametersFromWorkspace__(self, parameters):
+        alist = []
+        isGlobal = False
+        attrIndex = 0
+        try:
+            self.__sm__("Opening search cursor")
+            afeature = os.path.join(self.directory, self.WorkspaceID, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
+            requestedlist = parameters.split(';')
+            globalwshdAttr = [row[0] for row in arcpy.da.SearchCursor(afeature, 'GLOBALWSHD')]
+            if len(globalwshdAttr) > 1:
+                isGlobal = True
+                attrIndex = globalwshdAttr.index(1) # find index of global row (where GLOBALWSHD = 1)
+            for attr in requestedlist:
+                try:
+                    values = [row[0] for row in arcpy.da.SearchCursor(afeature, attr)]
+                    alist.append({"code" : attr, "value":values[attrIndex]})
+                except:
+                    alist.append({"code" : attr, "value": None })
+
+            return alist
+        except:
+            tb = traceback.format_exc() 
+            self.__sm__("Error reading attributes "+tb,"ERROR")
     def __getDirectory__(self, subDirectory):
         if os.path.exists(subDirectory): 
             shutil.rmtree(subDirectory)
