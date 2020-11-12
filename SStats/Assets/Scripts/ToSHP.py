@@ -41,69 +41,69 @@ class ConvertToSHP(object):
         self.WorkspaceID = workspaceID
         self.isComplete = False
         self.Message =""    
-        self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
+        self._MainDirectory = os.path.join(directory,self.WorkspaceID)
 
-        logdir = os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'ToShape.log')
+        logdir = os.path.join(os.path.join(self._MainDirectory,"Temp"), 'ToShape.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
         #Test if workspace exists before run   
-        if(not self.__workspaceExists__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):   
-            self.__sm__("workspace: "+ os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
+        if(not self._workspaceExists(os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers"))):   
+            self._sm("workspace: "+ os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
             return
                
-        self.__run__()    
+        self._run()    
     #endregion  
          
     #Private Methods
-    def __run__(self):
+    def _run(self):
         newdirname = "Layers"
         inFeatures = None
         FtoShp = None
         
         try:
-            globalwatershed = os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
-            arcpy.env.workspace =  os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers")
-            self.__sm__('workspace set: '+self.WorkspaceID)
-            outLocation = self.__getDirectory__(os.path.join(self.__MainDirectory__,newdirname))
+            globalwatershed = os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
+            arcpy.env.workspace =  os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers")
+            self._sm('workspace set: '+self.WorkspaceID)
+            outLocation = self._getDirectory(os.path.join(self._MainDirectory,newdirname))
             inFeatures = arcpy.ListFeatureClasses() #This will perform this on the listed workspace from above.
-            self.__sm__('Found '+ str(len(inFeatures)) +' features')
+            self._sm('Found '+ str(len(inFeatures)) +' features')
             FtoShp = arcpy.FeatureClassToShapefile_conversion (inFeatures, outLocation,)
             self.WorkspaceID= os.path.join(self.WorkspaceID, newdirname)
-            self.__sm__(arcpy.GetMessages(),'arcmsg')
+            self._sm(arcpy.GetMessages(),'arcmsg')
             content = map(lambda x:x.name, arcpy.ListFields(globalwatershed))
-            self.__writeToFile__(os.path.join(outLocation,"GlobalWatershedFields.txt"),content)
+            self._writeToFile(os.path.join(outLocation,"GlobalWatershedFields.txt"),content)
 
             self.isComplete = True
         except:
             tb = traceback.format_exc() 
-            self.__sm__("Error converting shape "+tb,"ERROR")
+            self._sm("Error converting shape "+tb,"ERROR")
             self.isComplete = False     
         finally:
             del inFeatures
             del FtoShp
-    def __writeToFile__(self, file, content):
+    def _writeToFile(self, file, content):
         f = None
         try:
             f = open(file, "a")
             f.writelines("Field Name"+'\n')
             f.writelines(map(lambda x:x+'\n', content))
         except:
-            self.__sm__("file " + file + ' failed to write', 0.201, 'ERROR')
+            self._sm("file " + file + ' failed to write', 0.201, 'ERROR')
         finally:
             if not f == None or not f.closed :
                 f.close();
     
-    def __getDirectory__(self, subDirectory):
+    def _getDirectory(self, subDirectory):
         if os.path.exists(subDirectory): 
             shutil.rmtree(subDirectory)
-        os.makedirs(subDirectory);
+        os.makedirs(subDirectory)
 
         return subDirectory
-    def __sm__(self, msg, type = ''):
+    def _sm(self, msg, type = ''):
         self.Message += type +' ' + ' ' + msg + '_'
 
         if type in ('ERROR'): logging.error(msg)
         else : logging.info(msg)
-    def __workspaceExists__(self, workspace):
+    def _workspaceExists(self, workspace):
          return arcpy.Exists(workspace)
 
     #endregion

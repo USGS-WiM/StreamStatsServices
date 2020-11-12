@@ -42,14 +42,14 @@ class AttributesFromWorkspace(object):
         self.WorkspaceID = workspaceID
         self.isComplete = False
         self.Message =""    
-        self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
+        self._MainDirectory = os.path.join(directory,self.WorkspaceID)
         self.AttributeList = None
 
-        logdir = os.path.join(os.path.join(self.__MainDirectory__,"Temp"), 'attribute.log')
+        logdir = os.path.join(os.path.join(self._MainDirectory,"Temp"), 'attribute.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
          
         #Test if workspace exists before run   
-        if(not self.__workspaceExists__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):
+        if(not self._workspaceExists(os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers"))):
             return
         self.__run__(aList)  
             
@@ -59,8 +59,8 @@ class AttributesFromWorkspace(object):
     def __run__(self, attributes):
         alist = []
         try:
-            self.__sm__("Opening search cursor")
-            afeature = os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
+            self._sm("Opening search cursor")
+            afeature = os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
             requestedlist = attributes.split(';')
             with arcpy.da.SearchCursor(afeature,requestedlist) as cursor:
                 for row in cursor:
@@ -79,25 +79,25 @@ class AttributesFromWorkspace(object):
             self.AttributeList = alist
             self.isComplete = True
 
-            self.__sm__("finished")
+            self._sm("finished")
         except:
             tb = traceback.format_exc() 
-            self.__sm__("Error reading attributes "+tb,"ERROR")
+            self._sm("Error reading attributes "+tb,"ERROR")
             self.isComplete = False     
-    def __getDirectory__(self, subDirectory):
+    def _getDirectory(self, subDirectory):
         if os.path.exists(subDirectory): 
             shutil.rmtree(subDirectory)
-        os.makedirs(subDirectory);
+        os.makedirs(subDirectory)
 
         return subDirectory
-    def __workspaceExists__(self, workspace):
+    def _workspaceExists(self, workspace):
         if arcpy.Exists(workspace):
-            self.__sm__(workspace + " exists")
+            self._sm(workspace + " exists")
             return True
         else:
-            self.__sm__(workspace + " does not exists")
+            self._sm(workspace + " does not exists")
             return False
-    def __sm__(self, msg, type = 'INFO'):
+    def _sm(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
         if type in ('ERROR'): logging.error(msg)
