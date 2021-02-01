@@ -124,21 +124,23 @@ class BasinParameters(object):
             self._sm("Opening search cursor")
             afeature = os.path.join(self.directory, self.WorkspaceID, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
             requestedlist = parameters.split(';')
-            globalwshdAttr = [row[0] for row in arcpy.da.SearchCursor(afeature, 'GLOBALWSHD')]
-            if len(globalwshdAttr) > 1:
-                attrIndex = globalwshdAttr.index(1) # find index of global row (where GLOBALWSHD = 1)
-                for attr in requestedlist:
-                    plistItem = [item for item in plist if item['code'] == attr][0]
-                    try:
-                        values = [row[0] for row in arcpy.da.SearchCursor(afeature, attr)]
-                        # if the global value == None, send None back to services
-                        if (values[attrIndex] == None):
+            try:
+                globalwshdAttr = [row[0] for row in arcpy.da.SearchCursor(afeature, 'GLOBALWSHD')]
+                if len(globalwshdAttr) > 1:
+                    attrIndex = globalwshdAttr.index(1) # find index of global row (where GLOBALWSHD = 1)
+                    for attr in requestedlist:
+                        plistItem = [item for item in plist if item['code'] == attr][0]
+                        try:
+                            values = [row[0] for row in arcpy.da.SearchCursor(afeature, attr)]
+                            # if the global value == None, send None back to services
+                            if (values[attrIndex] == None):
+                                plistItem["value"] = None
+                        except:
+                            # if searchCursor fails to find the parameter, send None back to services
                             plistItem["value"] = None
-                    except:
-                        # if searchCursor fails to find the parameter, send None back to services
-                        plistItem["value"] = None
-
-            return plist
+                return plist
+            except:
+                return plist
         except:
             tb = traceback.format_exc() 
             self._sm("Error reading attributes "+tb,"ERROR")
