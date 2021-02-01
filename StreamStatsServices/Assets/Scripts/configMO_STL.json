@@ -1,9 +1,10 @@
 {
   "workingdirectory": "D:\\ClientData",
-  "datadirectory": "D:\\WiM\\Projects\\StreamStats\\data\\stormwater",
+  "datadirectory": "E:\\data\\mo_stl",
   "datasetNames": {
     "basin": "GlobalWatershed",
-     "point": "GlobalWatershedPoint"
+     "point": "GlobalWatershedPoint",
+	 "swda":"garbage"
   },
   "maplayers": {
     "fdr": {

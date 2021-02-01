@@ -46,7 +46,7 @@ class mainWrapper(object):
         self.Results ={}
         self._args = self._getargs()
         self.workspaceID = self._args.workspaceID
-        config = Config(json.load(open(os.path.join(os.path.dirname(__file__), 'config.json')))) 
+        config = Config(json.load(open(os.path.join(os.path.dirname(__file__), 'config' + self._args.rcode + '.json')))) 
         self._workingDir = Shared.GetWorkspaceDirectory(config["workingdirectory"],self._args.rcode,self.workspaceID) 
         WiMLogging.init(os.path.join(self._workingDir,"Temp"),"StreamStats.log")
     #endregion    
@@ -166,8 +166,8 @@ class mainWrapper(object):
         try:
             parser = argparse.ArgumentParser()
             #for delineation
-            parser.add_argument("-rcode", help="specifies the abbr state name to perform delineation", type=str, default="MO_STLouis")
-            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-90.268639,38.640936]')
+            parser.add_argument("-rcode", help="specifies the abbr state name to perform delineation", type=str, default="MRB")
+            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-71.13606691,42.5255292]')
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, default = '4326')
             parser.add_argument("-stormwaterOption", help="Defines object for stormwater delineation option, 1-stormwater, 2-direct surface contributation only",choices=[1,2],type=int,default=1)
 
