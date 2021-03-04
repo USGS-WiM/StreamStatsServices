@@ -43,23 +43,23 @@ class Features(object):
 
 
         self.WorkspaceID = workspaceid
-        self.__MainDirectory__ = os.path.join(directory,self.WorkspaceID)
-        self.__TempDirectory__ = os.path.join(self.__MainDirectory__,"Temp")
+        self._MainDirectory = os.path.join(directory,self.WorkspaceID)
+        self._TempDirectory = os.path.join(self._MainDirectory,"Temp")
 
         #set up logging
-        logdir = os.path.join(self.__TempDirectory__, 'Feature.log')
+        logdir = os.path.join(self._TempDirectory, 'Feature.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
 
          #Test if workspace exists before run   
-        if(not self.__workspaceExists__(os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers"))):   
-            self.__sm__("workspace: "+ os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
+        if(not self._workspaceExists(os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers"))):   
+            self._sm("workspace: "+ os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
             return
         
         arcpy.env.overwriteOutput = True
-        arcpy.env.workspace =  os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers")
-        self.__sm__("Initialized")
+        arcpy.env.workspace =  os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers")
+        self._sm("Initialized")
 
-        self.__getFeaturesList__()
+        self._getFeaturesList()
                  
     #endregion   
         
@@ -81,35 +81,35 @@ class Features(object):
                             gwcopied = arcpy.FeatureClassToFeatureClass_conversion(f, arcpy.Describe(f).path, f+"copied", expression)
                             self.Features.append({
                                                 "name" : f,                                  
-                                                "feature": self.__simplify__(gwcopied,crs, simplificationType)
+                                                "feature": self._simplify(gwcopied,crs, simplificationType)
                                               })
                         else:
                             self.Features.append({
                                                 "name" : f,                                  
-                                                "feature": self.__simplify__(f,crs, simplificationType)
+                                                "feature": self._simplify(f,crs, simplificationType)
                                               })
         except:
             tb = traceback.format_exc()
-            self.__sm__("Failed to include feature " + tb,"ERROR") 
+            self._sm("Failed to include feature " + tb,"ERROR") 
         finally:
             if gwcopied != None: arcpy.Delete_management(gwcopied)  
    
     #endregion  
       
     #region Helper Methods
-    def __workspaceExists__(self, workspace):
+    def _workspaceExists(self, workspace):
          return arcpy.Exists(workspace)
 
-    def __getFeaturesList__(self):
+    def _getFeaturesList(self):
         try:           
             #open feature/ loop through and add to array
             for fc in arcpy.ListFeatureClasses():
                 self.FeaturesList.append(fc.lower())  
         except:
             tb = traceback.format_exc()
-            self.__sm__("Featurelist Error "+tb,"ERROR")
+            self._sm("Featurelist Error "+tb,"ERROR")
          
-    def __ToJSON__(self, fClass):
+    def _ToJSON(self, fClass):
         featSet = None
         try:
             featSet = arcpy.FeatureSet()
@@ -119,9 +119,9 @@ class Features(object):
             return json.loads(jsonStr)
         except:
             tb = traceback.format_exc()
-            self.__sm__("Failed to serialize " + tb,"ERROR")
+            self._sm("Failed to serialize " + tb,"ERROR")
     
-    def __toProjection__(self, inFeature, toCRS):
+    def _toProjection(self, inFeature, toCRS):
         sr = None  
         fromCRS = None
         desc = None  
@@ -130,24 +130,24 @@ class Features(object):
             sr = arcpy.SpatialReference(int(toCRS))
             desc = arcpy.Describe(inFeature)
             fromCRS = desc.spatialReference.factoryCode
-            projectFC = os.path.join(self.__TempDirectory__, desc.name +".shp")
+            projectFC = os.path.join(self._TempDirectory, desc.name +".shp")
             
             if arcpy.Exists(projectFC):
-                self.__sm__("deleting old temp file")
+                self._sm("deleting old temp file")
                 arcpy.Delete_management(projectFC)
             
             if sr.factoryCode == desc.spatialReference.factoryCode:
                 return None
-            self.__sm__("Projecting from: "+ str(fromCRS) + " To: " + str(toCRS))
+            self._sm("Projecting from: "+ str(fromCRS) + " To: " + str(toCRS))
             return arcpy.Project_management(inFeature,projectFC,sr)
         except:
             tb = traceback.format_exc()                  
-            self.__sm__("Error Reprojecting: " + tb +" "+ arcpy.GetMessages(),"ERROR")
+            self._sm("Error Reprojecting: " + tb +" "+ arcpy.GetMessages(),"ERROR")
             return None
         finally:
             sr = None
 
-    def __simplify__(self, fc, crs, simplificationType):
+    def _simplify(self, fc, crs, simplificationType):
         tolerance = 10
         simplifiedfc = None
         reprojectedFC = None
@@ -155,7 +155,7 @@ class Features(object):
         try:
             desc = arcpy.Describe(fc)
             type = desc.shapeType
-            reprojectedFC = self.__toProjection__(fc,crs)
+            reprojectedFC = self._toProjection(fc,crs)
 
             if reprojectedFC != None:
                 outputFC = reprojectedFC
@@ -163,14 +163,14 @@ class Features(object):
                 outputFC = fc
 
             if simplificationType == 1 or type == "Point" : 
-                 return self.__ToJSON__(outputFC)
+                 return self._ToJSON(outputFC)
         
-            numVerts = self.__getVerticesCount__(outputFC)
-            self.__sm__("Number of vertices: " + str(numVerts))
+            numVerts = self._getVerticesCount(outputFC)
+            self._sm("Number of vertices: " + str(numVerts))
                         
             if numVerts < 100:      
                 #no need to simplify
-                return self.__ToJSON__(outputFC)
+                return self._ToJSON(outputFC)
             elif numVerts < 1000:
                 tolerance = 10
             elif numVerts < 2000:
@@ -178,27 +178,27 @@ class Features(object):
             else:
                 tolerance = 30
                                           
-            self.__sm__("Simplifying feature with tolerance: "+str(tolerance))
+            self._sm("Simplifying feature with tolerance: "+str(tolerance))
 
             if type == 'Polygon':
                 simplifiedfc = CA.SimplifyPolygon(outputFC,  arcpy.Describe(outputFC).path+"simplified", "POINT_REMOVE", str(tolerance) +" Meters", 0, "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
             else:
                 simplifiedfc = CA.SimplifyLine(outputFC, arcpy.Describe(outputFC).path+"simplified", "POINT_REMOVE", str(tolerance) +" Meters", "RESOLVE_ERRORS", "KEEP_COLLAPSED_POINTS")
                 
-            self.__sm__(arcpy.GetMessages()) 
-            return self.__ToJSON__(simplifiedfc)
+            self._sm(arcpy.GetMessages()) 
+            return self._ToJSON(simplifiedfc)
 
         except:  
             tb = traceback.format_exc()                  
-            self.__sm__("Error Simplifying: " + tb,"ERROR")
+            self._sm("Error Simplifying: " + tb,"ERROR")
 
-            return self.__ToJSON__(fc)
+            return self._ToJSON(fc)
         finally:
             outputFC = None
             if reprojectedFC != None: arcpy.Delete_management(reprojectedFC)            
             if simplifiedfc != None: arcpy.Delete_management(simplifiedfc)
         
-    def __getVerticesCount__(self, polyFC):
+    def _getVerticesCount(self, polyFC):
         rtn = 0
         try:
             arcpy.AddField_management(polyFC, "numVert", "LONG", "", "", "", "", "NULLABLE", "NON_REQUIRED", "")
@@ -211,7 +211,7 @@ class Features(object):
         except:
             return -1
 
-    def __copyandRemoveFeature__(self, polyFC, fieldName, whereclause):
+    def _copyandRemoveFeature(self, polyFC, fieldName, whereclause):
         try:
             delimitedField = arcpy.AddFieldDelimiters(polyFC, "GlobalWshd")
             expression = delimitedField + " = 1"
@@ -223,7 +223,7 @@ class Features(object):
             tb = traceback.format_exc()
             return null
 
-    def __sm__(self, msg, type = 'INFO'):
+    def _sm(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
         if type in ('ERROR'): logging.error(msg)

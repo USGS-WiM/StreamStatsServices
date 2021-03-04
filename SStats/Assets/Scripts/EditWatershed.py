@@ -50,32 +50,32 @@ class EditWatershed(object):
         self.IsValid = False
 
         regionID = workspaceid[:-20].upper()
-        self.__MainDirectory__ = os.path.join(directory,workspaceid)
+        self._MainDirectory = os.path.join(directory,workspaceid)
 
         self.WorkspaceID = regionID + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')
-        self.__WorkspaceDirectory__ = self.__getDirectory__(os.path.join(directory, self.WorkspaceID),True)
+        self._WorkspaceDirectory = self._getDirectory(os.path.join(directory, self.WorkspaceID),True)
 
-        self.__TempDirectory__ = os.path.join(self.__WorkspaceDirectory__, "Temp")
+        self._TempDirectory = os.path.join(self._WorkspaceDirectory, "Temp")
 
         #set up logging
-        logdir = os.path.join(self.__TempDirectory__, 'EditWatershed.log')
+        logdir = os.path.join(self._TempDirectory, 'EditWatershed.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
 
          #Test if workspace exists before run   
-        if(not self.__workspaceExists__(os.path.join(self.__MainDirectory__, workspaceid+".gdb","Layers"))):   
-            self.__sm__("workspace: "+ os.path.join(self.__MainDirectory__, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
+        if(not self._workspaceExists(os.path.join(self._MainDirectory, workspaceid+".gdb","Layers"))):   
+            self._sm("workspace: "+ os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
             return
         
-        self.GlobalWatershed = os.path.join(os.path.join(self.__MainDirectory__, workspaceid+".gdb","Layers","GlobalWatershed"))
-        self.GlobalWatershedPoint = os.path.join(os.path.join(self.__MainDirectory__, workspaceid+".gdb","Layers","GlobalWatershedPoint"))
+        self.GlobalWatershed = os.path.join(os.path.join(self._MainDirectory, workspaceid+".gdb","Layers","GlobalWatershed"))
+        self.GlobalWatershedPoint = os.path.join(os.path.join(self._MainDirectory, workspaceid+".gdb","Layers","GlobalWatershedPoint"))
         
         if(arcpy.Exists(self.GlobalWatershed)):  
-            sr = arcpy.Describe(os.path.join(self.__MainDirectory__, workspaceid+".gdb","Layers")).spatialReference    
-            self.DatasetPath = arcpy.CreateFileGDB_management(self.__WorkspaceDirectory__, self.WorkspaceID +'.gdb')[0]
+            sr = arcpy.Describe(os.path.join(self._MainDirectory, workspaceid+".gdb","Layers")).spatialReference    
+            self.DatasetPath = arcpy.CreateFileGDB_management(self._WorkspaceDirectory, self.WorkspaceID +'.gdb')[0]
             self.FeaturePath =featurePath = arcpy.CreateFeatureDataset_management(self.DatasetPath,'Layers', sr)[0]
             self.IsValid = True
             arcpy.env.workspace =  self.DatasetPath
-            self.__sm__("Initialized")     
+            self._sm("Initialized")     
     #endregion   
         
     #region Methods   
@@ -84,26 +84,26 @@ class EditWatershed(object):
         removelist = None
         outname =""
         appendedFeature = self.GlobalWatershed
-        resultgdb = os.path.join(self.__WorkspaceDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
+        resultgdb = os.path.join(self._WorkspaceDirectory, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
         try:
-            self.__sm__("Executing")
-            appendlist = self.__jsonToPolygonArray__(add, espg)
-            removelist = self.__jsonToPolygonArray__(remove,espg)
+            self._sm("Executing")
+            appendlist = self._jsonToPolygonArray(add, espg)
+            removelist = self._jsonToPolygonArray(remove,espg)
    
             if(len(appendlist)>0): 
                 if(len(removelist)<1):outname = resultgdb    
-                appendedFeature = self.__editWatershed__(appendlist,self.GlobalWatershed,'append',outname)
+                appendedFeature = self._editWatershed(appendlist,self.GlobalWatershed,'append',outname)
             if(len(removelist)>0):
-                self.__editWatershed__(removelist, appendedFeature,'remove', resultgdb )
+                self._editWatershed(removelist, appendedFeature,'remove', resultgdb )
    
-            self.__addFields__(resultgdb, arcpy.ListFields(self.GlobalWatershed))  
+            self._addFields(resultgdb, arcpy.ListFields(self.GlobalWatershed))  
             
             #copy pourpoint over
-            arcpy.Copy_management(self.GlobalWatershedPoint, os.path.join(self.__WorkspaceDirectory__, self.WorkspaceID+".gdb","Layers","GlobalWatershedPoint"))         
-            self.__sm__("finished")
+            arcpy.Copy_management(self.GlobalWatershedPoint, os.path.join(self._WorkspaceDirectory, self.WorkspaceID+".gdb","Layers","GlobalWatershedPoint"))         
+            self._sm("finished")
         except:
             tb = traceback.format_exc()
-            self.__sm__("Failed to include feature " + tb,"ERROR") 
+            self._sm("Failed to include feature " + tb,"ERROR") 
         finally:
             appendlist = None
             removelist = None
@@ -113,10 +113,10 @@ class EditWatershed(object):
     #endregion  
       
     #region Helper Methods
-    def __addFields__(self, feature, fieldList):
+    def _addFields(self, feature, fieldList):
         # field.name , field.type , field.precision , field.scale, field.length, field.aliasName , field.isNullable , field.required
         try:
-            self.__sm__("updating fields")
+            self._sm("updating fields")
             includeList = list(set([f.name for f in fieldList])-set([f.name for f in arcpy.ListFields(feature)]))
             if(len(includeList)>0):
                 rows = arcpy.da.SearchCursor(self.GlobalWatershed,includeList)
@@ -136,12 +136,12 @@ class EditWatershed(object):
                 for field in fieldList:
                     if(field.name == "Edited"):
                         arcpy.CalculateField_management(feature,field.name,'"'+str(1)+'"',"PYTHON")
-                        break;
+                        break
                     
         except:
             tb = traceback.format_exc()
-            self.__sm__("Failed to include fields " + tb,"ERROR") 
-    def __fieldExist__(self, featureclass, fieldname):
+            self._sm("Failed to include fields " + tb,"ERROR") 
+    def _fieldExist(self, featureclass, fieldname):
         fieldList = arcpy.ListFields(featureclass, fieldname)
 
         fieldCount = len(fieldList)
@@ -150,12 +150,12 @@ class EditWatershed(object):
             return True
         else:
             return False
-    def __editWatershed__(self, featurelist, infeature, method = 'append', out = ""):
+    def _editWatershed(self, featurelist, infeature, method = 'append', out = ""):
 
         geometries = "in_memory\\lstHSUnionGeom"
         merged = "in_memory\\mergedFeature"
         try:     
-            self.__sm__(method+"ing "+ "changes")
+            self._sm(method+"ing "+ "changes")
             if(out ==""): out = "in_memory\\"+ method      
             arcpy.Union_analysis(featurelist,geometries)
            
@@ -167,16 +167,16 @@ class EditWatershed(object):
    
         except:
             tb = traceback.format_exc()
-            self.__sm__("Failed to include feature " + tb,"ERROR") 
+            self._sm("Failed to include feature " + tb,"ERROR") 
             raise Exception(tb)
         finally:
             if(geometries != None): arcpy.Delete_management(geometries)
             if(merged != None): arcpy.Delete_management(merged)
-    def __getDirectory__(self, subDirectory, makeTemp = True, template=None):
+    def _getDirectory(self, subDirectory, makeTemp = True, template=None):
         try:
             if os.path.exists(subDirectory): 
                 shutil.rmtree(subDirectory)
-            os.makedirs(subDirectory);
+            os.makedirs(subDirectory)
 
             #temp dir
             if makeTemp:
@@ -187,14 +187,14 @@ class EditWatershed(object):
         except:
             x = arcpy.GetMessages()
             return subDirectory
-    def __jsonToPolygonArray__(self, jsonlist, espg):
+    def _jsonToPolygonArray(self, jsonlist, espg):
         list = []
         for jobj in jsonlist:
-                list.append(self.__getPolygon__(jobj,espg))
+                list.append(self._getPolygon(jobj,espg))
         return list
-    def __workspaceExists__(self, workspace):
+    def _workspaceExists(self, workspace):
          return arcpy.Exists(workspace)      
-    def __getPolygon__(self,jsonArray, crs):
+    def _getPolygon(self,jsonArray, crs):
         lst_part = []  
         for part in jsonArray["rings"]: 
             lst_pnt = []  
@@ -203,7 +203,7 @@ class EditWatershed(object):
             lst_part.append(arcpy.Array(lst_pnt))  
         array = arcpy.Array(lst_part)  
         return arcpy.Polygon(array, crs)                       
-    def __sm__(self, msg, type = 'INFO'):
+    def _sm(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
         if type in ('ERROR'): logging.error(msg)
