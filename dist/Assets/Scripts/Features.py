@@ -77,9 +77,14 @@ class Features(object):
                 for f in map(lambda s: s.strip(), featurelist.split(';')):
                     if f.lower() in self.FeaturesList:
                         if f.lower() == "globalwatershed":
+                            ## only grabs features where GlobalWshd = 1
                             expression = arcpy.AddFieldDelimiters(f, "GlobalWshd") + " = 1"
                             gwcopied = arcpy.FeatureClassToFeatureClass_conversion(f, arcpy.Describe(f).path, f+"copied", expression)
-                            self.Features.append({
+                            count = int(arcpy.GetCount_management(gwcopied).getOutput(0))
+                            if count == 0:
+                                self._sm("Failed to find global watershed, no features found where GlobalWshd = 1", "ERROR")
+                            else:
+                                self.Features.append({
                                                 "name" : f,                                  
                                                 "feature": self._simplify(gwcopied,crs, simplificationType)
                                               })

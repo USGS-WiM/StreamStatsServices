@@ -38,7 +38,7 @@ import decimal
 
 class AttributesFromWorkspace(object):
     #region Constructor
-    def __init__(self, directory, workspaceID, aList):
+    def ___init____(self, directory, workspaceID, aList):
         self.WorkspaceID = workspaceID
         self.isComplete = False
         self.Message =""    
@@ -51,12 +51,12 @@ class AttributesFromWorkspace(object):
         #Test if workspace exists before run   
         if(not self._workspaceExists(os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers"))):
             return
-        self.__run__(aList)  
+        self._run(aList)  
             
     #endregion  
          
     #Private Methods
-    def __run__(self, attributes):
+    def _run(self, attributes):
         alist = []
         try:
             self._sm("Opening search cursor")
@@ -109,7 +109,7 @@ class AttributesFromWorkspace(object):
 ##-------+---------+---------+---------+---------+---------+---------+---------+        
 class AttributesFromWorkspaceWrapper(object):
     #region Constructor
-        def __init__(self):
+        def ___init____(self):
             try:
                 parser = argparse.ArgumentParser()
                 parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="OH20160517094142993000")
