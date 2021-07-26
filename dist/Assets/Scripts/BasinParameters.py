@@ -59,12 +59,12 @@ class BasinParameters(object):
         if(not self._workspaceValid(os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers"))):
             return
 
-        self.__run__(pList)  
+        self._run(pList)  
             
     #endregion  
          
     #Private Methods
-    def __run__(self, parameters):
+    def _run(self, parameters):
         workspace = ''
         plist = None
         xmlfile =''
@@ -124,23 +124,21 @@ class BasinParameters(object):
             self._sm("Opening search cursor")
             afeature = os.path.join(self.directory, self.WorkspaceID, self.WorkspaceID+".gdb","Layers","GlobalWatershed")
             requestedlist = parameters.split(';')
-            try:
-                globalwshdAttr = [row[0] for row in arcpy.da.SearchCursor(afeature, 'GLOBALWSHD')]
-                if len(globalwshdAttr) > 1:
-                    attrIndex = globalwshdAttr.index(1) # find index of global row (where GLOBALWSHD = 1)
-                    for attr in requestedlist:
-                        plistItem = [item for item in plist if item['code'] == attr][0]
-                        try:
-                            values = [row[0] for row in arcpy.da.SearchCursor(afeature, attr)]
-                            # if the global value == None, send None back to services
-                            if (values[attrIndex] == None):
-                                plistItem["value"] = None
-                        except:
-                            # if searchCursor fails to find the parameter, send None back to services
+            globalwshdAttr = [row[0] for row in arcpy.da.SearchCursor(afeature, 'GLOBALWSHD')]
+            if len(globalwshdAttr) > 1:
+                attrIndex = globalwshdAttr.index(1) # find index of global row (where GLOBALWSHD = 1)
+                for attr in requestedlist:
+                    plistItem = [item for item in plist if item['code'] == attr][0]
+                    try:
+                        values = [row[0] for row in arcpy.da.SearchCursor(afeature, attr)]
+                        # if the global value == None, send None back to services
+                        if (values[attrIndex] == None):
                             plistItem["value"] = None
-                return plist
-            except:
-                return plist
+                    except:
+                        # if searchCursor fails to find the parameter, send None back to services
+                        plistItem["value"] = None
+
+            return plist
         except:
             tb = traceback.format_exc() 
             self._sm("Error reading attributes "+tb,"ERROR")
@@ -213,7 +211,7 @@ class BasinParametersWrapper(object):
             try:
                 parser = argparse.ArgumentParser()
                 parser.add_argument("-stabbr", help="specifies the state abbreviation", type=str, default="VT")
-                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="VT20201112144936286000")
+                parser.add_argument("-workspaceID", help="specifies the working folder", type=str, default="VT20201112110902682000")
                 parser.add_argument("-parameters", help="specifies the ';' separated list of parameters to be computed", type=str, default = "CENTROIDX;CENTROIDY;DRNAREA;EL1200;LC06STOR;LC11DEV;LC11IMP;OUTLETX;OUTLETY;PRECPRIS10")
                 parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"C:\Users\kjacobsen\Documents\wim_projects\docs\new-data\vt")
                 args = parser.parse_args()

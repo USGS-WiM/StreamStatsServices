@@ -50,11 +50,11 @@ class ConvertToSHP(object):
             self._sm("workspace: "+ os.path.join(self._MainDirectory, self.WorkspaceID+".gdb","Layers") + " does not exist", "ERROR")
             return
                
-        self.__run__()    
+        self._run()    
     #endregion  
          
     #Private Methods
-    def __run__(self):
+    def _run(self):
         newdirname = "Layers"
         inFeatures = None
         FtoShp = None
