@@ -58,7 +58,9 @@ namespace SStats.Codecs.json
                     fw = ((Watershed)entity).FeatureList;
                 else if (entity.GetType() == typeof(Features))
                     fw =  ((Features)entity).FeatureList;
-                 
+                else if (entity.GetType() == typeof(NHDTrace))
+                    fw = ((NHDTrace)entity).FeatureList;
+
                 if (fw != null)
                 {
                     foreach (FeatureWrapper item in fw)

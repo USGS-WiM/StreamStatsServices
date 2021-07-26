@@ -130,21 +130,19 @@ namespace SStats.Utilities.ServiceAgent
         #endregion
     #endregion
     #region "Methods"
-        public List<Parameter> GetRegionParameters() {
+        public List<string> GetRegionParameters() {
             XElement iterator = null;
             IQueryable<XElement> query;
-            IEnumerable<XElement> paramElements;
 
             try
             {
                 iterator = XElement.Load(this.XMLFile);
                 query = iterator.Descendants("ApFunction").Where(a => a.Attribute("Name").Value == "WshParams").AsQueryable();
-                paramElements = query.Elements("ParamsDisplayOrder");
-
-                if (paramElements.Descendants().Count() > 0)
+                
+                if (query.Elements("ParamsDisplayOrder").Count() > 0 && query.Elements("ParamsDisplayOrder").FirstOrDefault().Value != String.Empty)
                 {
                     sm("From displayOrder");
-                    return loadParameters(paramElements.Descendants());
+                    return query.Elements("ParamsDisplayOrder").Select(p => p.Value).FirstOrDefault().Split(',').Select(p => p.Trim()).ToList();
                 }
                 else {
                     sm("From ApFields");
@@ -175,31 +173,6 @@ namespace SStats.Utilities.ServiceAgent
             }
         }
 
-        public static Capabilities GetRegionCapabilities(string regioncode,  String cType)
-        {
-            XElement iterator = null;
-            XElement selectedItem;
-            string xmlFile = ConfigurationManager.AppSettings["SSCapabilityRepository"];
-            Capabilities capabilities = new Capabilities(); ;
-
-            try
-            {
-                xmlFile = Path.Combine(xmlFile, string.Equals(cType, "dev", StringComparison.OrdinalIgnoreCase) ? "ApStates_dev.xml" : "ApStates_prod.xml");
-
-                iterator = XElement.Load(xmlFile);
-                selectedItem = iterator.Descendants("ApState").Where(a => String.Equals(a.Attribute("Name").Value, regioncode, StringComparison.OrdinalIgnoreCase)).FirstOrDefault();
-                capabilities.regionCode = selectedItem.Attribute("Name")!= null? selectedItem.Attribute("Name").Value: null;
-                capabilities.mapservice_src = selectedItem.Attribute("MapServiceWKID")!= null? selectedItem.Attribute("MapServiceWKID").Value:null;
-                capabilities.mapservice = selectedItem.Attribute("MapServiceName")!= null? selectedItem.Attribute("MapServiceName").Value: null;
-                capabilities.toolList = selectedItem.Elements("ApTools").Elements().Where(a => a.Attribute("Visible").Value == "1").Select(l => l.Attribute("Name").Value).ToList();
-
-                return capabilities;
-            }
-            catch (Exception err)
-            {
-                throw err;
-            }
-        }
     #endregion
     #region "Helper Methods"
  
@@ -217,14 +190,11 @@ namespace SStats.Utilities.ServiceAgent
                     throw new Exception("ft not specified");
 	        }//end switch
         }
-        private List<Parameter> loadParameters(IEnumerable<XElement> elements)
+        private List<string> loadParameters(IEnumerable<XElement> elements)
         {
             sm("count: " + elements.Count());
-            return elements.Select(x => new Parameter()
-                    {
-                        name = x.Attribute("Name").Value,
-                        code = x.Attribute("TagName").Value
-                    }).ToList();
+            return elements.Select(x => x.Attribute("TagName").Value
+                    ).ToList();
 
         }
         private void sm(string msg){

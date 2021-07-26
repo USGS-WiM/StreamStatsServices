@@ -25,6 +25,7 @@
     <RestorePackages>true</RestorePackages>
     <UseGlobalApplicationHostFile />
     <TypeScriptToolsVersion>1.0</TypeScriptToolsVersion>
+    <Use64BitIISExpress />
   </PropertyGroup>
   <PropertyGroup Condition=" '$(Configuration)|$(Platform)' == 'Debug|AnyCPU' ">
     <DebugSymbols>true</DebugSymbols>
@@ -46,9 +47,11 @@
     <Prefer32Bit>false</Prefer32Bit>
   </PropertyGroup>
   <ItemGroup>
-    <Reference Include="AWSSDK, Version=2.3.55.0, Culture=neutral, PublicKeyToken=9f476d3089b52be3, processorArchitecture=MSIL">
-      <HintPath>..\packages\AWSSDK.2.3.55.0\lib\net45\AWSSDK.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="AWSSDK, Version=2.3.55.2, Culture=neutral, PublicKeyToken=9f476d3089b52be3, processorArchitecture=MSIL">
+      <HintPath>..\packages\AWSSDK.2.3.55.2\lib\net45\AWSSDK.dll</HintPath>
+    </Reference>
+    <Reference Include="DotNetZip, Version=1.10.1.0, Culture=neutral, PublicKeyToken=6583c7c814667745, processorArchitecture=MSIL">
+      <HintPath>..\packages\DotNetZip.1.10.1\lib\net20\DotNetZip.dll</HintPath>
     </Reference>
     <Reference Include="EntityFramework, Version=6.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089, processorArchitecture=MSIL">
       <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.dll</HintPath>
@@ -58,14 +61,9 @@
       <HintPath>..\packages\EntityFramework.6.1.3\lib\net45\EntityFramework.SqlServer.dll</HintPath>
       <Private>True</Private>
     </Reference>
-    <Reference Include="Ionic.Zip, Version=1.9.8.0, Culture=neutral, PublicKeyToken=6583c7c814667745, processorArchitecture=MSIL">
-      <HintPath>..\packages\DotNetZip.1.9.8\lib\net20\Ionic.Zip.dll</HintPath>
-      <Private>True</Private>
-    </Reference>
     <Reference Include="Microsoft.CSharp" />
-    <Reference Include="Newtonsoft.Json, Version=8.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
-      <HintPath>..\packages\Newtonsoft.Json.8.0.3\lib\net45\Newtonsoft.Json.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="Newtonsoft.Json, Version=9.0.0.0, Culture=neutral, PublicKeyToken=30ad4fe6b2a6aeed, processorArchitecture=MSIL">
+      <HintPath>..\packages\Newtonsoft.Json.9.0.1\lib\net45\Newtonsoft.Json.dll</HintPath>
     </Reference>
     <Reference Include="OpenRasta, Version=2.0.0.0, Culture=neutral, processorArchitecture=MSIL">
       <HintPath>..\packages\openrasta-core.2.5.63\lib\net40\OpenRasta.dll</HintPath>
@@ -98,22 +96,27 @@
     <Reference Include="System.Web.Services" />
     <Reference Include="System.EnterpriseServices" />
     <Reference Include="System.Xml.Linq" />
-    <Reference Include="WiMServices, Version=1.0.5946.13132, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WiMServices.1.0.5946.13132\lib\net45\WiMServices.dll</HintPath>
-      <Private>True</Private>
+    <Reference Include="WiMAWS, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\WiMAWS.1.0.0.0\lib\net45\WiMAWS.dll</HintPath>
+    </Reference>
+    <Reference Include="WiMResources, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\WiMResources.1.0.0.0\lib\net45\WiMResources.dll</HintPath>
+    </Reference>
+    <Reference Include="WiMServices, Version=1.0.6544.11035, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\WiMServices.1.0.6544.11035\lib\net45\WiMServices.dll</HintPath>
+    </Reference>
+    <Reference Include="WiMUtilities, Version=1.0.6451.18941, Culture=neutral, processorArchitecture=MSIL">
+      <HintPath>..\packages\WiMUtilities.1.0.6451.18941\lib\net45\WiMUtilities.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
     <Content Include="Assets\Scripts\AttributesFromWorkspace.py" />
     <Content Include="Assets\Scripts\BasinParameters.py" />
-    <Content Include="Assets\Scripts\NetworkNavigation.py" />
     <Content Include="Assets\Scripts\Features.py" />
     <Content Include="Assets\Scripts\Delineation.py" />
-    <Content Include="Assets\Scripts\DelineationTest.py" />
-    <Content Include="Assets\Scripts\FlowStatisticsTest.py" />
-    <Content Include="Assets\Scripts\FlowStatistics.py" />
     <Content Include="Assets\Scripts\ToSHP.py" />
     <Content Include="packages.config" />
+    <Content Include="Assets\states.json" />
     <None Include="Properties\PublishProfiles\DeployFile.pubxml" />
     <None Include="Web.Debug.config">
       <DependentUpon>Web.config</DependentUpon>
@@ -130,21 +133,28 @@
   <ItemGroup>
     <Compile Include="Codecs\SSGeoJsonDotNetCodec.cs" />
     <Compile Include="Configuration.cs" />
-    <Compile Include="Handlers\WaterUseHandler.cs" />
-    <Compile Include="Handlers\NavigationHandler.cs" />
     <Compile Include="Handlers\ParameterGroupHandler.cs" />
     <Compile Include="Handlers\ParameterHandler.cs" />
     <Compile Include="Handlers\DownloadHandler.cs" />
-    <Compile Include="Handlers\CapabilitiesHandler.cs" />
     <Compile Include="Handlers\StatisticsHandler.cs" />
     <Compile Include="Handlers\FeatureHandler.cs" />
     <Compile Include="Handlers\WatershedHandler.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="Resources\CoordinatedReachServices\CoordinatedReach.cs" />
+    <Compile Include="Resources\CoordinatedReachServices\extent.cs" />
+    <Compile Include="Resources\NSSServices\PercentOverlay.cs" />
+    <Compile Include="Resources\NSSServices\StatisticGroupType.cs" />
+    <Compile Include="Resources\Parameter.cs" />
+    <Compile Include="Resources\NSSServices\RegressionResult.cs" />
+    <Compile Include="Resources\NSSServices\Scenario.cs" />
     <Compile Include="Resources\StreamStatsResources.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Include="Utilities\ServiceAgent\CoordinatedReachAgent.cs" />
+    <Compile Include="Utilities\ServiceAgent\StateSelectServiceAgent.cs" />
+    <Compile Include="Utilities\ServiceAgent\PercentOverlayServiceAgent.cs" />
     <Compile Include="Utilities\ServiceAgent\SSServiceAgent.cs" />
-    <Compile Include="Utilities\ServiceAgent\ServiceAgent.cs">
+    <Compile Include="Utilities\ServiceAgent\NSSServiceAgent.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Include="Utilities\ServiceAgent\SSXMLAgent.cs" />

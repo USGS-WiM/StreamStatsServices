@@ -40,6 +40,7 @@ using SStats.Codecs.json;
 using WiM.Codecs.json;
 using WiM.Codecs.xml;
 using WiM.PipeLineContributors;
+using NSSService.Resources;
 
 //using WiM.URIDecorators;
 
@@ -66,19 +67,10 @@ namespace SStats
                 addFlowStatisticResource();
                 addFeatureResource();
                 addParameterGroupResource();
-                addWaterUseResource();
-                addNetworkNavigationResource();
 
                 ResourceSpace.Has.ResourcesOfType<string>()
                 .WithoutUri.AsJsonDataContract();
-
-                //the capabilites section if for vs 3 and needs to be removed -jkn
-                ResourceSpace.Has.ResourcesOfType<List<Capabilities>>()
-                .AtUri("/capabilities?rcode={regioncode}&type={type}")
-                .HandledBy<CapabilitiesHandler>()
-                .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
-                .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
-
+               
             }//end using
         }//end Configure
 
@@ -108,7 +100,7 @@ namespace SStats
                     .HandledBy<DownloadHandler>();
         }
         private void addFlowStatisticResource() {
-            ResourceSpace.Has.ResourcesOfType<List<FlowStatistics>>()
+            ResourceSpace.Has.ResourcesOfType<List<StatisticGroupType>>()
                     .AtUri("/flowstatistics?rcode={regioncode}")
                     .HandledBy<StatisticsHandler>()
                     .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
@@ -135,29 +127,7 @@ namespace SStats
                     .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
                     .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
         }
-        private void addWaterUseResource() 
-        {
-            ResourceSpace.Has.ResourcesOfType<List<string>>()
-            .AtUri("/wateruse")
-            .HandledBy<WaterUseHandler>()
-            .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
-            .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
 
-            ResourceSpace.Has.ResourcesOfType<object>()
-            .AtUri("/wateruse?rcode={regioncode}").Named("GetWateruseConfigSettings")
-            .And.AtUri("/wateruse?rcode={regioncode}&workspaceID={workspaceID}&startyear={startyear}&endyear={endyear}")
-            .HandledBy<WaterUseHandler>()
-            .TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json");
-        }
-        private void addNetworkNavigationResource()
-        {
-            ResourceSpace.Has.ResourcesOfType<NHDTrace>()
-             .AtUri("/navigation/{navmethod}?rcode={regioncode}&startpoint={startpoint}&endpoint={endpoint}&crs={espg}&workspaceID={workspaceID}&direction={traceDirection}&layers={traceLayers}").Named("GetNavigation")
-             .HandledBy<NavigationHandler>()
-             .TranscodedBy<UTF8XmlSerializerCodec>(null).ForMediaType("application/xml;q=1").ForExtension("xml")
-             .And.TranscodedBy<JsonDotNetCodec>(null).ForMediaType("application/json;q=0.9").ForExtension("json")
-             .And.TranscodedBy<SSGeoJsonDotNetCodec>(null).ForMediaType("application/geojson;q=0.9").ForExtension("geojson");
-        }
         #endregion
     }//end Configuration
 }//end namespace

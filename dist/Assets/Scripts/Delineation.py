@@ -16,7 +16,7 @@
 #       
 
 #region "Comments"
-#08.19.2015 jkn - fixed hucid sync issue. By removing createfeature in __removePolygonHoles__
+#08.19.2015 jkn - fixed hucid sync issue. By removing createfeature in _removePolygonHoles
 #08.07.2015 jkn - modified to store in local projection
 #11.05.2014 jkn - Created/ Adapted from John Guthrie's getGW12.py
 #endregion
@@ -42,20 +42,19 @@ class Delineation(object):
     #region Constructor
     def __init__(self, regionID, directory):
         self.Message =""
-        self.__schemaPath__ = r"D:\ss_socs\ss_gp\schemas"
-        self.__xmlPath__ = r"D:\ss_apps\XML" 
-        self.__regionID__ = regionID        
-        self.__templatePath__ = os.path.join(self.__schemaPath__,self.__regionID__ + "_ss.gdb","Layers")
-        self.WorkspaceID = self.__regionID__ + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')
-        self.__WorkspaceDirectory__ = self.__getDirectory__(os.path.join(directory, self.WorkspaceID))
+        self._datadirectory = os.path.join(r"E:\data",regionID)
+        self._regionID = regionID        
+        self._templatePath = os.path.join(self._datadirectory, self._regionID + "_ss.gdb","Layers")
+        self.WorkspaceID = self._regionID + str(datetime.datetime.now()).replace('-','').replace(' ','').replace(':','').replace('.','')
+        self._workspaceDirectory = self._getDirectory(os.path.join(directory, self.WorkspaceID))
 
-        self.__TempLocation__ = os.path.join(self.__WorkspaceDirectory__, "Temp")
+        self._tempDirectory = os.path.join(self._workspaceDirectory, "Temp")
 
         #set up logging
-        logdir = os.path.join(self.__TempLocation__, 'delineation.log')
+        logdir = os.path.join(self._tempDirectory, 'delineation.log')
         logging.basicConfig(filename=logdir, format ='%(asctime)s %(message)s', level=logging.DEBUG)
 
-        self.__sm__("Initialized")         
+        self._sm("Initialized")         
     #endregion   
         
     #region Methods   
@@ -70,41 +69,41 @@ class Delineation(object):
 
         try:
             arcpy.env.overwriteOutput = True
-            arcpy.env.workspace = self.__TempLocation__
-            arcpy.env.scratchWorkspace = self.__TempLocation__
+            arcpy.env.workspace = self._tempDirectory
+            arcpy.env.scratchWorkspace = self._tempDirectory
 
-            templateFeaturePath=os.path.join(self.__templatePath__,'{0}' + self.__regionID__)
+            templateFeaturePath=os.path.join(self._templatePath,'{0}' + self._regionID)
 
-            sr = arcpy.Describe(self.__templatePath__).spatialReference
-            self.__sm__("Template spatial ref: "+ sr.name)
+            sr = arcpy.Describe(self._templatePath).spatialReference
+            self._sm("Template spatial ref: "+ sr.name)
 
-            self.__sm__("Delineation Started") 
-            datasetPath = arcpy.CreateFileGDB_management(self.__WorkspaceDirectory__, self.WorkspaceID +'.gdb')[0]
+            self._sm("Delineation Started") 
+            datasetPath = arcpy.CreateFileGDB_management(self._workspaceDirectory, self.WorkspaceID +'.gdb')[0]
             featurePath = arcpy.CreateFeatureDataset_management(datasetPath,'Layers', sr)[0]
 
-            self.__sm__("creating workspace environment. "+ datasetPath)
+            self._sm("creating workspace environment. "+ datasetPath)
             
             GWP = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedPoint", "POINT", 
                                                       templateFeaturePath.format("GlobalWatershedPoint") , "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE",sr)
             GW = arcpy.CreateFeatureclass_management(featurePath, "GlobalWatershedTemp", "POLYGON", 
                                                      templateFeaturePath.format("GlobalWatershed"), "SAME_AS_TEMPLATE", "SAME_AS_TEMPLATE",sr)
             
-            xmlPath = self.__SSXMLPath__("StreamStats{0}.xml".format(self.__regionID__), self.__TempLocation__, self.__TempLocation__)
+            xmlPath = self._ssxmlPath("StreamStats{0}.xml".format(self._regionID), self._tempDirectory, self._tempDirectory)
                         
             arcpy.CheckOutExtension("Spatial")
-            self.__sm__("Starting Delineation")
+            self._sm("Starting Delineation")
 
             ArcHydroTools.StreamstatsGlobalWatershedDelineation(PourPoint, GW, GWP, xmlPath , "CLEARFEATURES_NO", self.WorkspaceID)
-            self.__sm__(arcpy.GetMessages(),'AHMSG')
+            self._sm(arcpy.GetMessages(),'AHMSG')
 
             #remove holes  
-            self.__removePolygonHoles__(GW,featurePath)
+            self._removePolygonHoles(GW,featurePath)
             arcpy.CheckInExtension("Spatial")
             
-            self.__sm__("Finished")
+            self._sm("Finished")
         except:
             tb = traceback.format_exc()
-            self.__sm__("Delineation Error "+tb,"ERROR")
+            self._sm("Delineation Error "+tb,"ERROR")
 
         finally:
             #Local cleanup
@@ -112,22 +111,22 @@ class Delineation(object):
             del sr            
             arcpy.Delete_management(PourPoint)
             arcpy.Delete_management(GW)
-            #arcpy.Delete_management(self.__TempLocation__)
+            #arcpy.Delete_management(self._tempDirectory)
     #endregion  
       
     #region Helper Methods
-    def __removePolygonHoles__(self, polyFC, path):
+    def _removePolygonHoles(self, polyFC, path):
         try:
 
-            result = arcpy.EliminatePolygonPart_management(polyFC, os.path.join(path,"GlobalWatershed"), "AREA_OR_PERCENT", "90 squaremeters", 1, "ANY")#modified CONTAINED_ONLY
+            result = arcpy.EliminatePolygonPart_management(polyFC, os.path.join(path,"GlobalWatershed"), "AREA", "90 squaremeters", 1, "ANY")#modified CONTAINED_ONLY
 
-            self.__sm__(arcpy.GetMessages())
+            self._sm(arcpy.GetMessages())
             return result
         except:
             tb = traceback.format_exc()
-            self.__sm__("Error removing holes "+tb,"ERROR")
+            self._sm("Error removing holes "+tb,"ERROR")
             return polyFC       
-    def __getDirectory__(self, subDirectory, makeTemp = True):
+    def _getDirectory(self, subDirectory, makeTemp = True):
         try:
             if os.path.exists(subDirectory): 
                 shutil.rmtree(subDirectory)
@@ -142,11 +141,11 @@ class Delineation(object):
         except:
             x = arcpy.GetMessages()
             return subDirectory
-    def __SSXMLPath__(self, xmlFileName, copyToDirectory="#", newTempWorkspace = "#"):
+    def _ssxmlPath(self, xmlFileName, copyToDirectory="#", newTempWorkspace = "#"):
         file = None
         try:
             #move the file to tempDirectory
-            xmlFile = os.path.join(self.__xmlPath__, xmlFileName)
+            xmlFile = os.path.join(self._datadirectory, xmlFileName)
             if copyToDirectory != "#":
                 shutil.copy(xmlFile, copyToDirectory)
                 xmlFile = os.path.join(copyToDirectory,xmlFileName)
@@ -163,12 +162,12 @@ class Delineation(object):
             return xmlFile
         except:
              tb = traceback.format_exc()
-             self.__sm__(tb,"ERROR")
+             self._sm(tb,"ERROR")
         finally:
             if file != None and not file.closed: 
                 file.close 
                 file = None
-    def __sm__(self, msg, type = 'INFO'):
+    def _sm(self, msg, type = 'INFO'):
         self.Message += type +':' + msg.replace('_',' ') + '_'
 
         if type in ('ERROR'): logging.error(msg)
@@ -185,10 +184,10 @@ class DelineationWrapper(object):
 
         try:
             parser = argparse.ArgumentParser()
-            parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\gistemp\ClientData")
-            parser.add_argument("-stabbr", help="specifies the abbr state name to perform delineation", type=str, default="IA")
+            parser.add_argument("-directory", help="specifies the projects working directory", type=str, default = r"D:\ClientData")
+            parser.add_argument("-stabbr", help="specifies the abbr state name to perform delineation", type=str, default="IL")
             parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=json.loads, 
-                                default = '[-93.7364137172699,42.306129898064221]')
+                                default = '[-90.57914, 39.07473]')
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, 
                                 default = '4326')
                 
@@ -198,7 +197,7 @@ class DelineationWrapper(object):
             if regionID == '#' or not regionID:
                 raise Exception('Input Study Area required')
             
-            ppoint = self.__JsonToFeature__(args.pourpoint,args.pourpointwkid);
+            ppoint = self._jsonToFeature(args.pourpoint,args.pourpointwkid);
 
  
             ssdel = Delineation(regionID, args.directory)
@@ -218,7 +217,7 @@ class DelineationWrapper(object):
         finally:
             print "Results="+json.dumps(Results) 
 
-    def __JsonToFeature__(self, ppt, wkid):
+    def _jsonToFeature(self, ppt, wkid):
         rows = None
         try:
             #get spatial ref
@@ -263,4 +262,3 @@ class DelineationWrapper(object):
 
 if __name__ == '__main__':
     DelineationWrapper()
-
