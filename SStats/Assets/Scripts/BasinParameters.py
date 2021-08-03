@@ -43,7 +43,7 @@ class BasinParameters(object):
     #region Constructor
     def __init__(self, regionID, directory, workspaceID, pList): 
         self.RegionID = regionID
-        self._xmlPath = r"C:\Users\kjacobsen\Documents\wim_projects\docs\new-data\vt" 
+        self._xmlPath = os.path.join(r"E:\data",regionID)
         self.WorkspaceID = workspaceID
         self.isComplete = False
         self.Message =""    
