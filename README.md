@@ -9,6 +9,9 @@
 
 [.NET Core](https://www.microsoft.com/net/core#windowscmd)
 
+Python 2.7 (comes with ArcGIS)
+WIMLib v0.0.2 (run pip install WIMLib==0.0.2)
+
 ## Getting Started
 
 These instructions will get you a copy of the project up and running on your local machine for development and testing purposes. See deployment for notes on how to deploy the project on a live system.

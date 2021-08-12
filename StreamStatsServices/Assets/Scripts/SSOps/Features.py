@@ -115,6 +115,7 @@ class Features(SSOpsBase):
         file = None
         try:
             if(toGeojson):
+		self._sm("converting to json")
                 desc = arcpy.Describe(fClass)
                 file = arcpy.FeaturesToJSON_conversion(fClass,os.path.join(self._WorkspaceDirectory,desc.name+".json"),None,None,None,"GEOJSON")[0]
                 return json.load(open(file))['features'][0]
@@ -127,8 +128,8 @@ class Features(SSOpsBase):
         except:
             tb = traceback.format_exc()
             self._sm("Failed to serialize " + tb,"ERROR")
-        finally:
-            if file != None: os.remove(file)
+        #finally:
+            #if file != None: os.remove(file)
     
     def _toProjection(self, inFeature, toCRS):
         sr = None  
@@ -171,7 +172,8 @@ class Features(SSOpsBase):
             else:
                 outputFC = fc
 
-            if simplificationType == 1 or type == "Point" : 
+            if simplificationType == 1 or type == "Point" :
+                 self._updateBoundingBox(outputFC)			
                  return self._toJSON(outputFC)
         
             numVerts = self._getVerticesCount(outputFC)

@@ -30,9 +30,9 @@ import arcpy
 import shutil
 from SSOps.Stormwater import Stormwater as Stormwater
 from SSOps.Features import Features as Features
-from WiMPy import WiMLogging
-from WiMPy import Shared
-from WiMPy.Config import Config
+from WIMLib import WiMLogging
+from WIMLib import Shared
+from WIMLib.Config import Config
 import json
 
 #endregion
@@ -64,7 +64,7 @@ class mainWrapper(object):
             self.workspaceID = self._args.workspaceID
             parameters = self._args.parameters
             features = self._args.includefeatures
-            simplification = self._args.simplification
+            simplification = 1 #do not simplify
             outCRS = self._args.outputcrs
             toType = self._args.totype
 
@@ -95,7 +95,7 @@ class mainWrapper(object):
     #endregion
     #region Helper Methods 
     def _computeWatershed(self, ppoint, crs, stormwaterOption = None):
-        wshed = None
+        wshed = None 
         try:
             #create inmemory ppoint
             pourpoint = self._buildAHPourpoint(ppoint,crs)
@@ -167,7 +167,7 @@ class mainWrapper(object):
             parser = argparse.ArgumentParser()
             #for delineation
             parser.add_argument("-rcode", help="specifies the abbr state name to perform delineation", type=str, default="MO_STLouis")
-            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-90.268639,38.640936]')
+            parser.add_argument("-pourpoint", help="specifies the json representation of an esri point feature collection ", type=str, default = '[-90.45490,38.64752]')
             parser.add_argument("-pourpointwkid", help="specifies the esri well known id of pourpoint ", type=str, default = '4326')
             parser.add_argument("-stormwaterOption", help="Defines object for stormwater delineation option, 1-stormwater, 2-direct surface contributation only",choices=[1,2],type=int,default=1)
 
@@ -179,7 +179,7 @@ class mainWrapper(object):
        
             #for features
             parser.add_argument("-includefeatures", help="specifies the features, if blank, you'll get a list of features available", type=str, default = r"GlobalWatershedPoint,GlobalWatershed")
-            parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 2)
+            parser.add_argument("-simplification", help="specifies the simplify method to, 1 = full, 2 = simplified", type=int, choices=[1,2], default = 1)
             parser.add_argument("-outputcrs", help="specifies the output projection to use",type=int, default=4326)             
        
             #for download

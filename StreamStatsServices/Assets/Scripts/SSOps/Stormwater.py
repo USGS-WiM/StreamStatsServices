@@ -1,4 +1,4 @@
-﻿#-------------------------------------------------------------------
+#-------------------------------------------------------------------
 #----- Stormwater.py -----------------------------------------------
 #-------------------------------------------------------------------
 #
@@ -33,8 +33,8 @@ import json
 import sys
 from stormwaterdelineation import *
 from SSOps.StreamStatsOpsBase import StreamStatsOpsBase as SSOpsBase
-from WiMPy.Config import Config
-from WiMPy.MapLayer import *
+from WIMLib.Config import Config
+from WIMLib.MapLayer import *
 from arcpy.geoprocessing._base import gp
 
 #endregion
@@ -69,7 +69,7 @@ class Stormwater(SSOpsBase):
         netTrace = None
 
         try:
-            self._sm("directSurfaceContributionOnly "+str(directSurfaceContributionOnly))
+            print directSurfaceContributionOnly
             datasetName = Config()["datasetNames"]
             self._sm("Delineating catchment")
             fdr = MapLayer(MapLayerDef("fdr"), "", PourPoint)
@@ -85,7 +85,7 @@ class Stormwater(SSOpsBase):
             hydrJct = str(self._getActiveLayer("HydroJunction",fdr.TileID,fdr.TileID+".gdb\\Layers",True)) 
 
             sr = fdr.spatialreference
-      
+            
 
             datasetPath = arcpy.CreateFileGDB_management(self._WorkspaceDirectory, self.WorkspaceID +'.gdb')[0]
             featurePath = arcpy.CreateFeatureDataset_management(datasetPath, 'Layers', sr )[0]
@@ -94,10 +94,15 @@ class Stormwater(SSOpsBase):
             arcpy.CheckOutExtension("Spatial")
             self._sm("Starting Delineation")
             netTrace = StormNetTraceOp()
-            result=netTrace.GetWatershedViaNetTrace(PourPoint,2,fdr.Dataset, strlnk,strlnk,
-                                                               cat, adjCat, sink, pipe, strm, hydrJct, 
+
+            strmdrnoption = "direct surface contribution only" if directSurfaceContributionOnly else "full delineation"
+            #direct surface contribution only, full delineation, simulated inlet location
+            result=netTrace.GetWatershedViaNetTrace(PourPoint,10,fdr.Dataset, strlnk,strlnk,
+                                                               cat, adjCat, sink, pipe, strm, hydrJct,
+                                                               strmdrnoption, 
                                                                os.path.join(featurePath,datasetName["basin"]),
-                                                               os.path.join(featurePath,datasetName["point"]), directSurfaceContributionOnly)
+                                                               os.path.join(featurePath,datasetName["point"]),
+                                                               os.path.join(featurePath,datasetName["swda"]))
 
             self._sm(arcpy.GetMessages(), 'AHMSG')
             self._sm("Finished")
@@ -139,11 +144,13 @@ class Stormwater(SSOpsBase):
             ml.DataSetName = datasetname
             layer = MapLayer(ml, tileID)
             if not layer.Activated:
-                raise Exception(name +" could not be activated.")
+                self._sm(name +" could not be activated.","ERROR")
+                return ""
             if(returnAsLayer):
                 return arcpy.MakeFeatureLayer_management(layer.Dataset, name)
             else:
                 return layer.Dataset
         except :
             tb = traceback.format_exc()
-            raise Exception(name +" error "+tb)
+            self._sm(tb,"ERROR")
+            return ""
