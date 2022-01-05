@@ -91,11 +91,17 @@
     <Reference Include="Microsoft.CSharp" />
     <Reference Include="System.Data" />
     <Reference Include="System.Xml" />
+    <Reference Include="WiMAWS">
+      <HintPath>..\dist\bin\WiMAWS.dll</HintPath>
+    </Reference>
     <Reference Include="WiMResources, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WiMResources.1.0.0.0\lib\net45\WiMResources.dll</HintPath>
+      <HintPath>..\dist\bin\WiMResources.dll</HintPath>
     </Reference>
     <Reference Include="WiMServices, Version=1.0.6544.11035, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WiMServices.1.0.6544.11035\lib\net45\WiMServices.dll</HintPath>
+      <HintPath>..\dist\bin\WiMServices.dll</HintPath>
+    </Reference>
+    <Reference Include="WiMUtilities">
+      <HintPath>..\dist\bin\WiMUtilities.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>

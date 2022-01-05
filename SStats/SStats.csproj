@@ -97,16 +97,16 @@
     <Reference Include="System.EnterpriseServices" />
     <Reference Include="System.Xml.Linq" />
     <Reference Include="WiMAWS, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WiMAWS.1.0.0.0\lib\net45\WiMAWS.dll</HintPath>
+      <HintPath>..\dist\bin\WiMAWS.dll</HintPath>
     </Reference>
     <Reference Include="WiMResources, Version=1.0.0.0, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WiMResources.1.0.0.0\lib\net45\WiMResources.dll</HintPath>
+      <HintPath>..\dist\bin\WiMResources.dll</HintPath>
     </Reference>
     <Reference Include="WiMServices, Version=1.0.6544.11035, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WiMServices.1.0.6544.11035\lib\net45\WiMServices.dll</HintPath>
+      <HintPath>..\dist\bin\WiMServices.dll</HintPath>
     </Reference>
     <Reference Include="WiMUtilities, Version=1.0.6451.18941, Culture=neutral, processorArchitecture=MSIL">
-      <HintPath>..\packages\WiMUtilities.1.0.6451.18941\lib\net45\WiMUtilities.dll</HintPath>
+      <HintPath>..\dist\bin\WiMUtilities.dll</HintPath>
     </Reference>
   </ItemGroup>
   <ItemGroup>
