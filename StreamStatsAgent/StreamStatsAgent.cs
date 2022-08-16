@@ -69,6 +69,7 @@ namespace StreamStatsAgent
             catch (Exception ex)
             {
                 sm("Error getting watershed " + ex.Message, MessageType.error);
+                File.WriteAllText("D:\\logs\\StreamStatsError.log", "Error getting watershed " + ex.Message + "; " + MessageType.error);
                 throw;
             }            
         }

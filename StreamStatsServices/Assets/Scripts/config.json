@@ -1,6 +1,7 @@
 {
   "workingdirectory": "D:\\ClientData",
-  "datadirectory": "D:\\WiM\\Projects\\StreamStats\\data\\stormwater",
+  "datadirectory": "E:\\data",
+  "parentdirectory": "E:\\data",
   "datasetNames": {
     "basin": "GlobalWatershed",
      "point": "GlobalWatershedPoint"
