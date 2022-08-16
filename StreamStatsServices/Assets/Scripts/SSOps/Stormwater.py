@@ -85,7 +85,7 @@ class Stormwater(SSOpsBase):
             hydrJct = str(self._getActiveLayer("HydroJunction",fdr.TileID,fdr.TileID+".gdb\\Layers",True)) 
 
             sr = fdr.spatialreference
-      
+    
 
             datasetPath = arcpy.CreateFileGDB_management(self._WorkspaceDirectory, self.WorkspaceID +'.gdb')[0]
             featurePath = arcpy.CreateFeatureDataset_management(datasetPath, 'Layers', sr )[0]
@@ -94,10 +94,15 @@ class Stormwater(SSOpsBase):
             arcpy.CheckOutExtension("Spatial")
             self._sm("Starting Delineation")
             netTrace = StormNetTraceOp()
-            result=netTrace.GetWatershedViaNetTrace(PourPoint,2,fdr.Dataset, strlnk,strlnk,
-                                                               cat, adjCat, sink, pipe, strm, hydrJct, 
-                                                               os.path.join(featurePath,datasetName["basin"]),
-                                                               os.path.join(featurePath,datasetName["point"]), directSurfaceContributionOnly)
+
+            strmdrnoption = "direct surface contribution only" if directSurfaceContributionOnly else "full delineation"
+            #direct surface contribution only, full delineation, simulated inlet location
+            result=netTrace.GetWatershedViaNetTrace(PourPoint,10,fdr.Dataset, strlnk,strlnk,
+                                                    cat, adjCat, sink, pipe, strm, hydrJct,
+                                                    strmdrnoption, 
+                                                    os.path.join(featurePath,datasetName["basin"]),
+                                                    os.path.join(featurePath,datasetName["point"]),
+                                                    os.path.join(featurePath,datasetName["swda"]))
 
             self._sm(arcpy.GetMessages(), 'AHMSG')
             self._sm("Finished")
