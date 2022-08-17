@@ -172,7 +172,8 @@ class Features(SSOpsBase):
                 outputFC = fc
 
             if simplificationType == 1 or type == "Point" : 
-                 return self._toJSON(outputFC)
+                self._updateBoundingBox(outputFC)
+                return self._toJSON(outputFC)
         
             numVerts = self._getVerticesCount(outputFC)
             self._sm("Number of vertices: " + str(numVerts))
@@ -186,7 +187,7 @@ class Features(SSOpsBase):
                 tolerance = 20
             else:
                 tolerance = 30
-                                          
+
             self._sm("Simplifying feature with tolerance: "+str(tolerance))
 
             if type == 'Polygon':

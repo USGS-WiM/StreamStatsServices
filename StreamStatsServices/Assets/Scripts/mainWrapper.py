@@ -73,13 +73,12 @@ class mainWrapper(object):
 
             if(regionID and ppoint and crs):
                 self._computeWatershed(ppoint,crs,stormwaterOption)
-                          
             
             if(self.workspaceID and parameters):
                 self._loadParameters(parameters)
 
             if(self.workspaceID):
-                self._loadFeatures(features, outCRS,simplification)
+                self._loadFeatures(features, outCRS, simplification)
 
             if(self.workspaceID and toType):
                 self._getDownload(toType)
