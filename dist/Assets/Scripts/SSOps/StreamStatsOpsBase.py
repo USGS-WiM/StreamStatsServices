@@ -23,7 +23,7 @@ import os
 import tempfile
 import traceback
 import json
-from  WiMPy import WiMLogging
+from  WIMLib import WiMLogging
 from abc import ABCMeta, abstractmethod
 
 #endregion

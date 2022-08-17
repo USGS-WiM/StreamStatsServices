@@ -33,8 +33,8 @@ import json
 import sys
 from stormwaterdelineation import *
 from SSOps.StreamStatsOpsBase import StreamStatsOpsBase as SSOpsBase
-from WiMPy.Config import Config
-from WiMPy.MapLayer import *
+from WIMLib.Config import Config
+from WIMLib.MapLayer import *
 from arcpy.geoprocessing._base import gp
 
 #endregion

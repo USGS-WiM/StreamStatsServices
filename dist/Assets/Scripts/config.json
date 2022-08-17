@@ -1,11 +1,10 @@
 {
   "workingdirectory": "D:\\ClientData",
-  "datadirectory": "E:\\data\\mrb",
-  "parentdirectory": "E:\\data\\mrb",
+  "datadirectory": "E:\\data",
+  "parentdirectory": "E:\\data",
   "datasetNames": {
     "basin": "GlobalWatershed",
-     "point": "GlobalWatershedPoint",
-	 "swda":"garbage"
+     "point": "GlobalWatershedPoint"
   },
   "maplayers": {
     "fdr": {
