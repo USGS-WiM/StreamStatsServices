@@ -34,6 +34,7 @@ namespace StreamStatsAgent
     public interface IStreamStatsAgent : IMessage
     {
         Watershed GetWatershed(double X, double Y, int espg, string regioncode, bool simplify, stormwaterOption stormwater=0);
+        void WriteError(string file, string error);
     }
 
     public class StreamStatsAgent : ExternalProcessServiceAgentBase, IStreamStatsAgent
@@ -68,13 +69,18 @@ namespace StreamStatsAgent
             }
             catch (Exception ex)
             {
+                WriteError("D:\\logs\\StreamStatsAgentError.log", "Error getting watershed " + ex.Message);
                 sm("Error getting watershed " + ex.Message, MessageType.error);
-                File.WriteAllText("D:\\logs\\StreamStatsError.log", "Error getting watershed " + ex.Message + "; " + MessageType.error);
                 throw;
             }            
         }
         #endregion
         #region HELPER METHODS
+        public void WriteError(string file, string error)
+        {
+            File.WriteAllText(file, error);
+        }
+
         private void sm(string message, MessageType type = MessageType.info)
         {
             this.Messages.Add(new Message() { msg=message, type = type });

@@ -57,6 +57,7 @@ namespace StreamStatsServices.Controllers
             }
             catch (Exception ex)
             {
+                agent.WriteError("D:\\logs\\WatershedGetError.log", "Error: " + ex.Message);
                 return HandleException(ex);
             }
         }
@@ -74,6 +75,7 @@ namespace StreamStatsServices.Controllers
             }
             catch (Exception ex)
             {
+                agent.WriteError("D:\\logs\\WatershedEditError.log", "Error: " + ex.Message);
                 return HandleException(ex);
             }
         }
