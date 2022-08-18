@@ -1,6 +1,7 @@
 {
   "workingdirectory": "D:\\ClientData",
   "datadirectory": "E:\\data\\mrb",
+  "parentdirectory": "E:\\data\\mrb",
   "datasetNames": {
     "basin": "GlobalWatershed",
      "point": "GlobalWatershedPoint",

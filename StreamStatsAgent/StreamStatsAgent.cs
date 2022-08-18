@@ -60,6 +60,7 @@ namespace StreamStatsAgent
                 args.Add("-rcode " + regioncode);
                 args.Add(String.Format("-pourpoint [{0},{1}]", X, Y));
                 args.Add("-pourpointwkid " + espg);
+                args.Add("-simplification " + (simplify ? 2 : 1));
                 args.Add("-stormwaterOption "+(int)stormwater);
                 var body = string.Join(" ", args);
 
