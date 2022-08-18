@@ -1,6 +1,7 @@
 {
   "workingdirectory": "D:\\ClientData",
   "datadirectory": "E:\\data\\mo_stl",
+  "parentdirectory": "E:\\data\\mo_stl",
   "datasetNames": {
     "basin": "GlobalWatershed",
      "point": "GlobalWatershedPoint",
