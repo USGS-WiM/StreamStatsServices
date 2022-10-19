@@ -9,6 +9,7 @@
     <TargetFramework>net6.0</TargetFramework>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
     <OutputPath>bin\</OutputPath>
+    <UserSecretsId>8411ab2a-7f4a-4860-9c05-22c01c70dae7</UserSecretsId>
   </PropertyGroup>
   <ItemGroup>
     <Reference Include="WiMAWS">
