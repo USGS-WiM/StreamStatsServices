@@ -13,12 +13,14 @@ namespace SStats.Controllers
     public class WatershedController : Controller
     {
         [HttpGet(Name = "Watershed")]
-        public OperationResult GetWatershed(String regioncode, Double X, Double Y, Int32 espg, [Optional] String simplificationOption,
+        public OperationResult GetWatershed(String regioncode, Double X, Double Y, int espg, [Optional] String simplificationOption,
                                             [Optional] String parameterList, [Optional] String flowtypeList,
                                             [Optional] String featureList)
         {
             //watershed?state=IA&xlocation=-10347402.453276031&ylocation=5174977.1176704019&wkid=102100
-            //watershed?regioncode=IA&x=-10347402.453276031&y=5174977.1176704019&epsg=102100
+            //watershed?regioncode=IA&x=-10347402.453276031&y=5174977.1176704019&epsg=102100&
+            //watershed?regioncode=VA&x=-78.89490365982056&y=37.48148216815963&espg=4326
+
             Watershed SSresults = null;
             SSServiceAgent agent = null;
             try

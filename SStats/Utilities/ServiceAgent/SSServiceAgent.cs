@@ -38,13 +38,13 @@ namespace SStats.Utilities.ServiceAgent
 
         #region Constructors
         public SSServiceAgent()
-            : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
+            : base("C:\\Python27\\ArcGIS10.7\\python.exe"/*ConfigurationManager.AppSettings["EXEPath"]*/, "D:\\applications\\test_streamstatsservices\\Assets\\Scripts")// Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
             HasGeometry = false;
             RepositoryDirectory = getRepositoryPath();
         }
         public SSServiceAgent(string workspaceID)
-            : base(ConfigurationManager.AppSettings["EXEPath"], Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
+            : base("C:\\Python27\\ArcGIS10.7\\python.exe"/*ConfigurationManager.AppSettings["EXEPath"]*/, "D:\\applications\\test_streamstatsservices\\Assets\\Scripts")// Path.Combine(new String[] { AppDomain.CurrentDomain.BaseDirectory, "Assets", "Scripts" }))
         {
             WorkspaceString = workspaceID;
             HasGeometry = false;
@@ -62,14 +62,16 @@ namespace SStats.Utilities.ServiceAgent
             
             try
             {
-                if (ConfigurationManager.AppSettings["exludedcodes"].ToUpper().Split(',').Contains(basinCode.ToUpper()))
+                if ("DRB,CRB".ToUpper().Split(',').Contains(basinCode.ToUpper()))
                 {
                     var ssSA = new StateSelectServiceAgent();
                     basinCode = ssSA.getUnderlyingBasinCode(new Point(x,y),espg);
                     if (string.IsNullOrEmpty(basinCode)) throw new BadRequestException("rcode is invalid for given point location");
                 }
-                
-                result = Execute(getProcessRequest(getProcessName(processType.e_delineation), getBody(basinCode, x, y, espg))) as JObject;
+
+                string processName = getProcessName(processType.e_delineation);
+                string processBody = getBody(basinCode, x, y, espg);
+                result = Execute(getProcessRequest(processName, processBody)) as JObject;
 
                 if (isDynamicError(result, out msg)) throw new Exception("Delineation Error: " + msg);
 
@@ -563,8 +565,8 @@ namespace SStats.Utilities.ServiceAgent
         protected string getRepositoryPath()
         {
             string selectedPath = string.Empty;
-            string uncPaths = ConfigurationManager.AppSettings["UNCDrives"];
-            string repository = ConfigurationManager.AppSettings["SSRepository"];
+            string uncPaths = "D:\\"; // ConfigurationManager.AppSettings["UNCDrives"];
+            string repository = "ClientData";// ConfigurationManager.AppSettings["SSRepository"];
             try
             {
                 //is there a workspaceID
@@ -655,7 +657,7 @@ namespace SStats.Utilities.ServiceAgent
             switch (sType)
             {
                 case processType.e_delineation:
-                    uri = ConfigurationManager.AppSettings["Delineation"];
+                    uri = "Delineation.py"; // ConfigurationManager.AppSettings["Delineation"];
                     break;
                 case processType.e_editwatershed:
                     uri = ConfigurationManager.AppSettings["EditWatershed"];
